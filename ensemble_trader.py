@@ -121,7 +121,7 @@ class LightGBMPredictor:
             return None
         
         try:
-            data = fetch_data(ticker, "6m")
+            data = fetch_data(ticker, "6mo")  # yfinance rejects "6m"
             if data is None or len(data) < 50:
                 return None
             
@@ -158,6 +158,36 @@ class SentimentFilter:
         self.cache = {}
         self.cache_time = {}
     
+    def _fetch_headlines(self, ticker: str, name: str) -> Tuple[list, str]:
+        """Return (headlines, source). hermes_tools resolves only inside execute_code,
+        so a plain terminal/cron run falls back to Google News RSS (no API key needed)."""
+        try:
+            from hermes_tools import web_search
+            res = web_search(f"{name} {ticker} stock news", limit=5)
+            arts = res.get("data", {}).get("web", [])
+            if arts:
+                return [f"{a.get('title', '')} {a.get('description', '')}" for a in arts], "hermes_tools"
+        except Exception:
+            pass
+
+        try:
+            import urllib.parse
+            import urllib.request
+            import xml.etree.ElementTree as ET
+            query = urllib.parse.quote(f"{name} {ticker} stock")
+            url = (f"https://news.google.com/rss/search?q={query}"
+                   f"&hl=en-US&gl=US&ceid=US:en")
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=20) as resp:
+                root = ET.fromstring(resp.read())
+            titles = [(item.findtext("title") or "") for item in root.findall(".//item")]
+            if titles:
+                return titles, "google_news_rss"
+        except Exception:
+            pass
+
+        return [], "unavailable"
+
     def get_sentiment(self, ticker: str, name: str) -> Dict:
         """Get sentiment score for a stock."""
         # Check cache (refresh every 4 hours)
@@ -167,17 +197,16 @@ class SentimentFilter:
                 return self.cache[ticker]
         
         try:
-            # Try to use hermes_tools if available (execute_code environment)
-            from hermes_tools import web_search
-            results = web_search(f"{name} {ticker} stock news", limit=5)
-            articles = results.get("data", {}).get("web", [])
+            # hermes_tools resolves only inside execute_code, so fall back to Google
+            # News RSS to keep this layer working in a plain terminal/cron process.
+            articles, source = self._fetch_headlines(ticker, name)
             
             positive_count = 0
             negative_count = 0
             total_articles = 0
             
             for article in articles:
-                text = f"{article.get('title', '')} {article.get('description', '')}".lower()
+                text = article.lower()
                 pos = sum(1 for kw in self.POSITIVE_KEYWORDS if kw in text)
                 neg = sum(1 for kw in self.NEGATIVE_KEYWORDS if kw in text)
                 positive_count += pos
@@ -202,6 +231,8 @@ class SentimentFilter:
                 'score': score,
                 'positive_mentions': positive_count,
                 'negative_mentions': negative_count,
+                'available': total_articles > 0,
+                'source': source,
             }
             
             self.cache[ticker] = result
@@ -216,6 +247,8 @@ class SentimentFilter:
                 'score': 0.5,
                 'positive_mentions': 0,
                 'negative_mentions': 0,
+                'available': False,
+                'source': 'unavailable',
             }
         except Exception as e:
             return {
@@ -224,6 +257,8 @@ class SentimentFilter:
                 'score': 0.5,
                 'positive_mentions': 0,
                 'negative_mentions': 0,
+                'available': False,
+                'source': 'unavailable',
             }
 
 
@@ -272,10 +307,12 @@ class EnsembleTrader:
     def __init__(self):
         self.alpaca = AlpacaTrader()
         self.ml_predictor = LightGBMPredictor()
+        self._ml_trained = {}          # symbol -> bool; train once per run
         self.sentiment_filter = SentimentFilter()
         self.volatility_targeting = VolatilityTargeting(target_vol=0.15)
         
         # Signal weights (from research)
+        self.MIN_LIVE_LAYERS = 3   # refuse to act on fewer live signal layers than this
         self.signal_weights = {
             'technical': 0.30,    # ADX + Bollinger
             'ml_prediction': 0.25, # LightGBM
@@ -307,14 +344,24 @@ class EnsembleTrader:
             signals['technical'] = 0
             signals['regime'] = 'unknown'
         
-        # 2. ML prediction
-        ml_prob = self.ml_predictor.predict(symbol)
+        # 2. ML prediction - train on demand. train() was never called anywhere, so the
+        # model stayed None and predict() returned None for every symbol (-> neutral 0.5).
+        if symbol not in self._ml_trained:
+            try:
+                self._ml_trained[symbol] = bool(self.ml_predictor.train(symbol, "2y"))
+            except Exception as exc:
+                print(f"  ML train failed for {symbol}: {exc}")
+                self._ml_trained[symbol] = False
+        ml_prob = self.ml_predictor.predict(symbol) if self._ml_trained[symbol] else None
         signals['ml_probability'] = ml_prob if ml_prob is not None else 0.5
+        signals['ml_available'] = ml_prob is not None
         
         # 3. Sentiment
         sentiment = self.sentiment_filter.get_sentiment(symbol, symbol)
         signals['sentiment_score'] = sentiment['score']
         signals['sentiment'] = sentiment['sentiment']
+        signals['sentiment_available'] = sentiment.get('available', False)
+        signals['sentiment_source'] = sentiment.get('source', 'unknown')
         
         # 4. Momentum (12-month return)
         try:
@@ -357,14 +404,41 @@ class EnsembleTrader:
         # Momentum contribution
         ensemble_score += self.signal_weights['momentum'] * np.sign(signals['momentum']) * min(abs(signals['momentum']), 1.0)
         
-        # Volatility contribution (prefer lower vol)
-        vol_score = 1.0 - min(signals['volatility'] / 0.5, 1.0)
+        # Volatility contribution (prefer lower vol). Centred on zero so the term is
+        # symmetric like every other layer. As originally written it ranged 0..1 and so
+        # always added a POSITIVE amount, giving every score a permanent long bias - once
+        # renormalised that produced STRONG_BUY for 8 of 11 names, which is a bias, not a
+        # signal.
+        vol_score = 1.0 - 2.0 * min(signals['volatility'] / 0.5, 1.0)
         ensemble_score += self.signal_weights['volatility'] * vol_score
         
+        # A layer that produced only its neutral placeholder contributed 0 to the numerator
+        # while still counting in the denominator, silently diluting the score toward zero.
+        # Renormalise over the layers that actually produced a value so the score is an
+        # unbiased estimate on the original scale.
+        _live = {
+            'technical': signals['technical'] != 0,
+            'ml_prediction': signals.get('ml_available', False),
+            'sentiment': signals.get('sentiment_available', False),
+            'momentum': True,        # always measurable
+            'volatility': True,      # always measurable
+        }
+        signals['layers_used'] = sorted(layer for layer, ok in _live.items() if ok)
+        _live_weight = sum(w for k, w in self.signal_weights.items() if _live.get(k))
+        signals['layers_live_weight'] = round(_live_weight, 3)
+        if _live_weight > 0:
+            ensemble_score = ensemble_score / _live_weight
         signals['ensemble_score'] = ensemble_score
         
-        # Final decision
-        if ensemble_score > 0.3:
+        # Final decision. Require a minimum number of live layers before acting: the standing
+        # rule is to act only on multiple independent confirming signals, so a score built
+        # from one or two layers must not produce a trade.
+        if len(signals['layers_used']) < self.MIN_LIVE_LAYERS:
+            signals['decision'] = 'HOLD'
+            signals['decision_note'] = (
+                f"held - only {len(signals['layers_used'])} live layer(s), "
+                f"need {self.MIN_LIVE_LAYERS}")
+        elif ensemble_score > 0.3:
             signals['decision'] = 'STRONG_BUY'
         elif ensemble_score > 0.1:
             signals['decision'] = 'BUY'

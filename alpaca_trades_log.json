@@ -1,65 +1,138 @@
-[
-  {
-    "date": "2026-10-17T00:37:28.057315",
-    "action": "BUY",
-    "symbol": "PK",
-    "shares": 317,
-    "price": 15.76,
-    "cost": 4995.92,
-    "rationale": "Initial portfolio entry \u2014 5% allocation"
-  },
-  {
-    "date": "2026-10-17T00:57:27.921608",
-    "action": "BUY",
-    "symbol": "AMD",
-    "shares": 16,
-    "price": 589.46,
-    "cost": 9431.36,
-    "rationale": "Earnings ~Nov 3 (2 weeks), 4 consecutive beats, 89% beat rate, post-earnings momentum likely",
-    "catalyst": "Earnings Nov 3",
-    "sell_date": "2026-11-16",
-    "strategy": "1-MONTH_TRADE"
-  },
-  {
-    "date": "2026-10-17T00:57:28.172981",
-    "action": "BUY",
-    "symbol": "LLY",
-    "shares": 7,
-    "price": 1322.97,
-    "cost": 9260.79,
-    "rationale": "Earnings ~late Oct (2 weeks), GLP-1 growth, raising guidance, healthcare sector accumulating",
-    "catalyst": "Earnings late Oct",
-    "sell_date": "2026-11-16",
-    "strategy": "1-MONTH_TRADE"
-  },
-  {
-    "date": "2026-10-17T01:45:53.474457",
-    "action": "BUY",
-    "symbol": "MRVL",
-    "shares": 395,
-    "price": 252.59,
-    "cost": 99773.05,
-    "rationale": "Full portfolio investment \u2014 AI custom ASIC duopoly, 42 Buy/0 Sell analysts, +40% upside target, Google TPU catalyst",
-    "strategy": "FULL_INVESTMENT"
-  },
-  {
-    "date": "2026-10-17T01:53:59.073081",
-    "action": "BUY",
-    "symbol": "MRVL",
-    "shares": 98,
-    "price": 252.59,
-    "cost": 24753.82,
-    "rationale": "Additional $25k MRVL investment",
-    "strategy": "ADD_TO_POSITION"
-  },
-  {
-    "date": "2026-10-17T02:00:09.878505",
-    "action": "BUY",
-    "symbol": "DDOG",
-    "shares": 45,
-    "price": 266.25,
-    "cost": 11981.25,
-    "rationale": "Fill portfolio \u2014 next best screener candidate (Score 90)",
-    "strategy": "FILL_PORTFOLIO"
-  }
-]
+{
+  "_rebuilt_at": "2026-10-16T22:35:03.432917+00:00",
+  "_rebuilt_because": "Previous log recorded sells that never filled (orders were still accepted), booked a cancelled 395-share MRVL buy as completed, and used decision-time quote prices instead of actual fill prices. Rebuilt from Alpaca order history.",
+  "fills": [
+    {
+      "filled_at": "2026-10-16T13:33:06.886429Z",
+      "action": "BUY",
+      "symbol": "RKLB",
+      "shares": 258.0,
+      "fill_price": 53.9037,
+      "notional": 13907.16,
+      "order_id": "7a4023db-ee03-4547-a734-818884c9d40a",
+      "source": "alpaca_order_history"
+    },
+    {
+      "filled_at": "2026-10-16T13:30:49.242144Z",
+      "action": "BUY",
+      "symbol": "MU",
+      "shares": 15.0,
+      "fill_price": 901.07,
+      "notional": 13516.05,
+      "order_id": "ad556f5e-43fd-4f45-84a9-28d96311a928",
+      "source": "alpaca_order_history"
+    },
+    {
+      "filled_at": "2026-10-16T13:31:51.106299Z",
+      "action": "BUY",
+      "symbol": "BE",
+      "shares": 40.0,
+      "fill_price": 230.226,
+      "notional": 9209.04,
+      "order_id": "84a72625-64a4-4934-92c0-ed20cb5fff43",
+      "source": "alpaca_order_history"
+    },
+    {
+      "filled_at": "2026-10-16T13:33:05.705752Z",
+      "action": "BUY",
+      "symbol": "PK",
+      "shares": 317.0,
+      "fill_price": 15.9613,
+      "notional": 5059.73,
+      "order_id": "cee83571-bbef-4c73-bac7-1b6ce8e72770",
+      "source": "alpaca_order_history"
+    },
+    {
+      "filled_at": "2026-10-16T13:31:20.44485Z",
+      "action": "BUY",
+      "symbol": "AMD",
+      "shares": 16.0,
+      "fill_price": 548.41,
+      "notional": 8774.56,
+      "order_id": "3d9505be-c864-4f49-b217-53289d583463",
+      "source": "alpaca_order_history"
+    },
+    {
+      "filled_at": "2026-10-16T13:32:28.20751Z",
+      "action": "BUY",
+      "symbol": "LLY",
+      "shares": 7.0,
+      "fill_price": 1259.8129,
+      "notional": 8818.69,
+      "order_id": "ae58171d-a129-4ac1-8823-c04af08faed2",
+      "source": "alpaca_order_history"
+    },
+    {
+      "filled_at": "2026-10-16T13:32:51.024212Z",
+      "action": "BUY",
+      "symbol": "MRVL",
+      "shares": 98.0,
+      "fill_price": 235.2899,
+      "notional": 23058.41,
+      "order_id": "83ffea16-0cf6-4f48-9ea8-47b74380f687",
+      "source": "alpaca_order_history"
+    },
+    {
+      "filled_at": "2026-10-16T13:33:29.375701Z",
+      "action": "BUY",
+      "symbol": "DDOG",
+      "shares": 45.0,
+      "fill_price": 269.1756,
+      "notional": 12112.9,
+      "order_id": "725b0d54-2114-44b7-9699-cef438dd3f8c",
+      "source": "alpaca_order_history"
+    }
+  ],
+  "cancelled_or_expired": [
+    {
+      "submitted_at": "2026-10-16T12:45:53.275905Z",
+      "action": "BUY",
+      "symbol": "MRVL",
+      "shares": 395.0,
+      "status": "canceled",
+      "filled_qty": 0.0,
+      "order_id": "aa704a77-a404-45fa-99f5-96e69a4f55ff",
+      "note": "never filled - excluded from positions and P&L"
+    },
+    {
+      "submitted_at": "2026-10-16T21:41:05.186711Z",
+      "action": "SELL",
+      "symbol": "LLY",
+      "shares": 1.0,
+      "status": "canceled",
+      "filled_qty": 0.0,
+      "order_id": "77731c23-badf-4d34-800b-4e7c02af8218",
+      "note": "never filled - excluded from positions and P&L"
+    },
+    {
+      "submitted_at": "2026-10-16T21:41:39.244246Z",
+      "action": "SELL",
+      "symbol": "LLY",
+      "shares": 1.0,
+      "status": "canceled",
+      "filled_qty": 0.0,
+      "order_id": "ed20c66e-aa9b-4e0e-9d80-e64e6e3d2e62",
+      "note": "never filled - excluded from positions and P&L"
+    },
+    {
+      "submitted_at": "2026-10-16T21:42:54.872902Z",
+      "action": "SELL",
+      "symbol": "AMD",
+      "shares": 16.0,
+      "status": "canceled",
+      "filled_qty": 0.0,
+      "order_id": "d45442c9-2da9-490a-b01e-8d6cee5dea19",
+      "note": "never filled - excluded from positions and P&L"
+    },
+    {
+      "submitted_at": "2026-10-16T21:44:11.57043Z",
+      "action": "SELL",
+      "symbol": "LLY",
+      "shares": 5.0,
+      "status": "canceled",
+      "filled_qty": 0.0,
+      "order_id": "1be633a8-cff1-4eb1-bfcd-e8ed7119bf9f",
+      "note": "never filled - excluded from positions and P&L"
+    }
+  ]
+}

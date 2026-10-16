@@ -3,21 +3,31 @@
 
 ## Current Portfolio
 
-### Active Positions
-- **MRVL (Marvell Technology)**: 395 shares @ $252.59 = $99,773.05
-  - Strategy: Full investment — highest conviction pick
-  - Rationale: AI custom ASIC duopoly, 42 Buy/0 Sell analysts, +40% upside target
-  - Expected return: +30-40% over 1-2 years
-  - Key catalyst: Potential Google TPU win
-  - Key risk: Customer concentration (Amazon + Microsoft = 50%+)
+**Do not hardcode positions here — they rot.** Read the live state instead:
 
-### Pending Orders (fill when market opens)
-- RKLB: 258 shares @ $58.06 = $14,979.48
-- MU: 15 shares @ $969.47 = $14,542.05
-- BE: 40 shares @ $248.90 = $9,956.00
-- PK: 317 shares @ $15.76 = $4,995.92
+- Positions, cash, equity: `GET /v2/account` and `/v2/positions` (see `alpaca_config.txt` for credentials)
+- Every fill, as Alpaca recorded it: `alpaca_trades_log.json` → `fills`
+- Orders that never filled: `alpaca_trades_log.json` → `cancelled_or_expired`
 
-### Cash: $226.95 (fractional share remainder)
+Snapshot as of the last review (2026-10-17, paper account):
+
+| Symbol | Shares | Avg entry | Weight of long MV | Thesis |
+|---|---|---|---|---|
+| MRVL | 98 | $235.29 | 24.5% | Custom AI silicon. **Over the 15% cap — the 395-share order that would have made this a deliberate full-portfolio bet was cancelled; 98 shares is what actually filled.** |
+| RKLB | 258 | $53.90 | 14.5% | Space/Neutron. Binary on first flight (slipped 4x, now 2027). Screener rates it AVOID. |
+| MU | 15 | $901.07 | 14.5% | Memory supercycle, sold out into CY2027. Peak-cycle risk. |
+| DDOG | 45 | $269.18 | 12.3% | **No thesis — bought to "fill the portfolio".** Worst performer. |
+| LLY | 7 | $1,259.81 | 9.7% | GLP-1 franchise. Originally a 1-month event trade. |
+| BE | 40 | $230.23 | 9.7% | Fuel cells, Oracle 2.8GW / AEP 702MW. **Over the 5% cap.** |
+| AMD | 16 | $548.41 | 9.3% | Originally a 1-month earnings trade (3 Nov print). |
+| PK | 317 | $15.96 | 5.6% | Hospitality REIT. "Defensive" label contradicts the hiking-rate macro view. |
+
+Queued at the last review, filling Monday 19 Oct: XOM 27 sh, GEV 5 sh, GLD 10 sh
+(~5/5/4%, funded partly on margin).
+
+**Portfolio risk (measured, not assumed):** annualised vol **49.0%** vs SPY 12.7% —
+3.9x the market. AI-hardware sleeve is ~58% of long market value against this
+playbook's own 40% ceiling, with mean pairwise correlation 0.53 inside it.
 
 ## Strategy Summary
 
@@ -74,17 +84,26 @@
 | Trim Signal Alert | 8am weekdays | Alert when trim signals trigger |
 | Weekly Structural Trends Brief | 8am Mondays | Multi-year trend analysis |
 | Weekly Trading Performance Report | 8am Mondays | Performance summary |
-| 1-Month Trade Sell Reminder | Nov 16 (one-time) | Sell AMD/LLY positions |
+| 1-Month Trade Sell Reminder | **DEAD — fired 30 days early on 17 Oct** | Was: sell AMD/LLY on 16 Nov. Needs re-creating with a self-check. |
+
+**Cron warning:** on 2026-10-17 all seven trading jobs fired off-schedule in one burst
+(Saturday, no scheduled instant) — including the 16 Nov one-shot, which then placed sell
+orders. Root cause unresolved. Any job that can place an order MUST verify its own
+preconditions (date, market open, position present) before acting, and must refuse rather
+than comply when the premise does not hold.
 
 ## Key Files
 
-- `C:\Users\Omega\alpaca_config.txt` — API credentials (NEVER SHARE)
-- `C:\Users\Omega\alpaca_trades_log.json` — All trades
-- `C:\Users\Omega\trim_log.json` — All trims
-- `C:\Users\Omega\screener_results.json` — Screener output
-- `C:\Users\Omega\ensemble_signals.json` — Ensemble signals
-- `C:\Users\Omega\weekly_performance_report.md` — Weekly report
-- `C:\Users\Omega\one_month_trades.json` — 1-month trade tracking
+All files live in `C:\Users\Omega\Repo\Hermes Trader\` (moved from `C:\Users\Omega\`,
+which still holds stale duplicate copies — ignore anything there).
+
+- `alpaca_config.txt` — API credentials (gitignored; NEVER SHARE, never hardcode)
+- `alpaca_trades_log.json` — fills + cancelled orders, derived from Alpaca order history
+- `trim_log.json` — all trims
+- `screener_results.json` — screener output
+- `ensemble_signals.json` — ensemble signals (check `layers_used` before trusting)
+- `weekly_performance_report.md` — weekly report
+- `one_month_trades.json` — 1-month trade tracking
 
 ## User Preferences
 
@@ -133,11 +152,12 @@
 
 1. **Load the skill**: `skill_view(name='alpaca-trading-strategy')`
 2. **Check cron jobs**: `cronjob_manage(action='list')`
-3. **Review portfolio**: Read `C:\Users\Omega\alpaca_trades_log.json`
-4. **Run daily scan**: `python C:\Users\Omega\ensemble_trader.py`
-5. **Run screener**: `python C:\Users\Omega\stock_screener.py`
-6. **Run position management**: `python C:\Users\Omega\position_manager.py`
-7. **Review weekly report**: Read `C:\Users\Omega\weekly_performance_report.md`
+3. **Review portfolio**: read `alpaca_trades_log.json`, then confirm against Alpaca's
+   `/v2/positions` — never trust the log alone
+4. **Run daily scan**: `python ensemble_trader.py`
+5. **Run screener**: `python stock_screener.py`
+6. **Run position management**: `python position_manager.py`
+7. **Review weekly report**: read `weekly_performance_report.md`
 
 ## Emergency Procedures
 
