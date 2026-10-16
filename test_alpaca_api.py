@@ -8,9 +8,24 @@ import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
 
-API_KEY = "PKK6KU4V22JYLQJHI27GRRHRTG"
-API_SECRET = "5f8yafADd55H1oX4dNxa122QRcz3SQG6Q7UwNUSUqot"
+# Credentials are read from alpaca_config.txt -- never hardcode secrets here.
+def _load_alpaca_creds():
+    import os
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "alpaca_config.txt")
+    creds = {}
+    with open(path, "r") as fh:
+        for line in fh:
+            line = line.strip()
+            if line.startswith("API_KEY="):
+                creds["API_KEY"] = line.split("=", 1)[1]
+            elif line.startswith("API_SECRET="):
+                creds["API_SECRET"] = line.split("=", 1)[1]
+    if not creds.get("API_KEY") or not creds.get("API_SECRET"):
+        raise ValueError("Could not read API credentials from alpaca_config.txt")
+    return creds["API_KEY"], creds["API_SECRET"]
 
+
+API_KEY, API_SECRET = _load_alpaca_creds()
 HEADERS = {
     "APCA-API-KEY-ID": API_KEY,
     "APCA-API-SECRET-KEY": API_SECRET,
