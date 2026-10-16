@@ -1,0 +1,313 @@
+{
+  "report": "Weekly Structural Trends Brief",
+  "generated": "2026-10-17",
+  "portfolio_context": {
+    "paper_positions": ["MRVL", "AMD", "LLY", "DDOG", "PK"],
+    "pending_orders": ["RKLB", "MU", "BE"],
+    "watchlist": ["RKLB", "NVDA", "MU", "AMD", "INTC", "GOOGL", "XOM", "CVX", "NEE", "CAT", "GEV", "BE", "AVGO", "MRVL", "ALAB", "CRWD", "PLTR", "TSM", "ASML", "PANW"],
+    "sharesies_holdings": ["AIR", "GOOG", "ASML", "BAP", "CO2", "QBTS", "DXYZ", "IREN", "NOK", "PEB", "DTIL", "RGTI", "RKLB", "USH", "TSLA", "VOOG"],
+    "exclusions": "No defense stocks per user preference"
+  },
+  "trends": [
+    {
+      "id": "geo-01",
+      "category": "geopolitical",
+      "theme": "Iran war / Strait of Hormuz — the energy shock has no end date in sight",
+      "what_changed": "15 merchant-ship attacks recorded by UKMTO between Oct 6-14, 2026, including alleged naval mines; Trump reimposed a US blockade of Iranian ports in October, ending a 3-month ceasefire. Gulf oil transit has fallen to ~9.7m bpd vs a 17m bpd baseline (Kpler), ~80% of pre-war on some measures.",
+      "duration": "multi-year",
+      "evidence": [
+        {"src": "ZeroFox Monthly Geopolitical Report, Oct 2026", "url": "https://www.zerofox.com/intelligence/monthly-geopolitical-report-october-2026/"},
+        {"src": "Kpler via CNBC TV18 — Hormuz flows down to 9.7m bpd, Brent $95-115 in Q4 2026", "url": "https://www.cnbctv18.com/market/commodities/hormuz-oil-flows-drop-brent-crude-115-dollars-q4-amena-bakr-20010805.htm"},
+        {"src": "Dallas Fed — global refinery capacity down up to 10%; fuel prices to stay high vs crude", "url": "https://www.dallasfed.org/research/economics/2026/1008"}
+      ],
+      "beneficiaries": ["XOM", "CVX", "NEE", "GEV", "CAT", "BE", "LLY"],
+      "losers": ["AIR", "broad discretionary", "rate-sensitive growth"],
+      "portfolio_action": "HOLD XOM/CVX. Add GEV or CAT as the non-defense expression of the power-capacity squeeze."
+    },
+    {
+      "id": "geo-02",
+      "category": "geopolitical",
+      "theme": "US-China truce is a truce, not a deal — three cliff dates inside 6 months",
+      "what_changed": "The Busan truce was extended two months to Jan 10, 2027. Separately, 178 remaining Section 301 China exclusions expire Nov 10, 2026 with no extension announced, and the '30-for-30' relief framework is not yet operative (no Federal Register notice). Tariffs on Chinese goods still stack to ~30% effective.",
+      "duration": "multi-year",
+      "evidence": [
+        {"src": "CNBC — Bessent: truce extended to Jan 10, 2027", "url": "https://www.cnbc.com/2026/09/24/us-china-trade-truce-bessent-trump-xi.html"},
+        {"src": "Thomson Reuters Tax — Section 301 exclusions expire Nov 10, 2026", "url": "https://tax.thomsonreuters.com/blog/section-301-exclusions-expiration/"},
+        {"src": "Eastern Herald — truce deadline analysis", "url": "https://easternherald.com/2026/06/15/us-china-trade-truce-november-2026-section-301-tariff-expiry/"}
+      ],
+      "beneficiaries": ["MU", "MRVL", "AVGO", "XOM", "CAT"],
+      "losers": ["INDA/VWO-type China exposure", "single-source China manufacturers"],
+      "portfolio_action": "No portfolio change. Avoid new China-levered names until the Nov 10 and Jan 10 cliffs resolve."
+    },
+    {
+      "id": "geo-03",
+      "category": "geopolitical",
+      "theme": "Critical-minerals weaponisation — the binding constraint on the AI hardware build",
+      "what_changed": "China's expanded Oct 2025 rare-earth measures (0.1% extraterritorial rule) are suspended to Nov 2026, but seven REE controls stay live and the January 2026 Export Licensing Catalogue added rare-earth compounds, silver and more. IEA: gallium and heavy REE prices in Europe are ~5x Chinese domestic prices; full implementation would put $6.5tn/yr of non-China downstream production at risk.",
+      "duration": "multi-year",
+      "evidence": [
+        {"src": "IEA Global Critical Minerals Outlook 2026 — executive summary", "url": "https://www.iea.org/reports/global-critical-minerals-outlook-2026/executive-summary"},
+        {"src": "CFR — Dismantling China's Supply-Chain Weapon", "url": "https://www.cfr.org/reports/dismantling-chinas-supply-chain-weapon"},
+        {"src": "Micron FY2025 10-K (via Luminix) — China the 'predominant producer' of materials", "url": "https://www.useluminix.com/reports/industry-analysis/china-rare-earth-export-controls-2026-us-defense-ai-chip-supply-impact/source/2"}
+      ],
+      "beneficiaries": ["MU (supply discipline)", "XOM/CVX (energy security)", "INLIN rare-earth non-China producers", "MP Materials, Lynas (not on watchlist)"],
+      "losers": ["Any AI hardware name with undiversified Chinese input supply"],
+      "portfolio_action": "This is the structural case for memory pricing discipline. Reinforces MU over a broad semis basket."
+    },
+    {
+      "id": "tech-01",
+      "category": "tech_supply_chain",
+      "theme": "New chokepoints: EDA, GAA transistors, advanced packaging, HBM co-packaging",
+      "what_changed": "Deloitte: by 2026 at least $30bn will be spent on EUV equipment and HBM co-packaging tools, all now trade-barrier exposed; export controls have expanded from physical equipment to software, design methodologies and AI model weights. Sub-5nm/sub-3nm capacity accelerating in the US, Taiwan and Korea. TSMC CoWoS near-monopoly — 85% of advanced AI chip production; capacity 120-130k wafers/month by end-2026.",
+      "duration": "multi-year",
+      "evidence": [
+        {"src": "Deloitte TMT Predictions 2026 — new supply chain tech", "url": "https://www.deloitte.com/us/en/insights/industry/technology/technology-media-and-telecom-predictions/2026/new-supply-chain-tech.html"},
+        {"src": "KPMG Global Semiconductor Industry Outlook 2026 — supply chain now the #1 priority (45% of respondents)", "url": "https://kpmg.com/kpmg-us/content/dam/kpmg/pdf/2026/global-semiconductor-industry-outlook-2026.pdf"},
+        {"src": "TrendForce — CoWoS shortage extends upstream to equipment and downstream to substrates", "url": "https://www.trendforce.com/presscenter/news/20260430-13028.html"}
+      ],
+      "beneficiaries": ["MU", "MRVL", "AVGO", "TSM", "ASML", "LRCX", "AMAT", "KLAC", "SNPS", "CDNS"],
+      "losers": ["INTC (capital-starved, fabs behind)", "China-only capacity"],
+      "portfolio_action": "Keep the semis weight concentrated in memory + connectivity (MU, MRVL, AVGO). Avoid INTC as a structural bet — it is now a government-sponsored policy asset with a $627bn valuation and $3.7bn quarterly losses."
+    },
+    {
+      "id": "tech-02",
+      "category": "tech_supply_chain",
+      "theme": "AI memory supercycle — sold out into 2027 at much higher prices",
+      "what_changed": "Micron fiscal Q4 2026: revenue $54.23bn (+379% y/y), EPS $33.42, non-GAAP gross margin 87.0%, FY26 revenue $133.19bn (+256%), FY26 EPS $75.52 (+883%). Q1 FY27 guided to ~$61.5bn with 86.25% gross margin. Management: 'vast majority' of calendar-2027 HBM bit supply contracted with significant price increases; industry HBM bit shipments to grow faster than conventional DRAM through calendar 2028; no line of sight to market balance. FY26 capex raised above $25bn.",
+      "duration": "multi-year (through 2028 at minimum)",
+      "evidence": [
+        {"src": "Investing.com — Micron tops Q4 2026 estimates transcript", "url": "https://www.investing.com/news/transcripts/earnings-call-transcript-micron-tops-q4-2026-estimates-as-ai-demand-stays-hot-93CH-4926057"},
+        {"src": "Globe and Mail / Zacks — Micron record Q4 results", "url": "https://www.theglobeandmail.com/investing/markets/stocks/MU/pressreleases/4917509/buy-micron-stock-after-ai-memory-demand-fuels-record-q4-results/"},
+        {"src": "HeyGotrade — Micron blowout quarter & AI memory supercycle", "url": "https://www.heygotrade.com/en/news/micron-blowout-quarter-ai-memory-supercycle-mu-sk-hynix-hbm/"}
+      ],
+      "beneficiaries": ["MU", "SNDK", "NVDA (HBM supply constraint is a demand signal)", "MRVL", "AVGO"],
+      "losers": ["Anyone assuming memory price normalisation in 2027"],
+      "portfolio_action": "MU pending order at $969.47 is at a historically extreme multiple. Do NOT size up here — it is a cyclical peak print. Hold the position you have, treat any RSI<30 dip as the add window, and set a discipline to trim into strength rather than adding into record margins."
+    },
+    {
+      "id": "tech-03",
+      "category": "tech_supply_chain",
+      "theme": "Custom AI silicon (XPU) is now the second demand engine",
+      "what_changed": "Marvell fiscal 2026 revenue ~$8.2bn (+40% y/y), data center $6.1bn, ~75% of total revenue. Raised combined FY27+FY28 outlook to $30bn from $20bn a year ago. Custom ASIC targeted at $12bn+ by fiscal 2029 (raised from $10-11bn); custom sales doubling in fiscal 2028. 20+ XPU/XPU-attach design wins across all four US hyperscalers. Long-term path of $70-90bn annual revenue by fiscal 2031. Connectivity growing >70% y/y.",
+      "duration": "multi-year",
+      "evidence": [
+        {"src": "Marvell 2026 proxy statement", "url": "https://investor.marvell.com/sec-filings/all-sec-filings/content/0001104659-26-060265/0001104659-26-060265.pdf"},
+        {"src": "Investing.com — Marvell at Citi's 2026 Global TMT Conference", "url": "https://www.investing.com/news/transcripts/marvell-at-citis-2026-global-tmt-conference-ai-push-deepens-93CH-4894261"},
+        {"src": "Yahoo Finance — Marvell targets up to $90bn revenue by 2031", "url": "https://finance.yahoo.com/technology/ai/articles/marvell-technology-targets-90b-revenue-200205162.html"}
+      ],
+      "beneficiaries": ["MRVL", "AVGO", "ALAB"],
+      "losers": ["NVDA's share of the AI accelerator wallet", "legacy merchant silicon"],
+      "portfolio_action": "MRVL at ~62x forward earnings is the most expensive position in the paper portfolio. Hold it as the custom-silicon thesis but cap the total position — this is a single-customer-concentration risk (Amazon + Microsoft = 50%+). ALAB (Q2 2026 revenue +104% y/y to $392m, Q3 guided $540-560m) is the cleaner pure-play expression if you want to add rack-scale interconnect exposure."
+    },
+    {
+      "id": "tech-04",
+      "category": "tech_supply_chain",
+      "theme": "The AI capex flywheel is the portfolio's single largest tail risk",
+      "what_changed": "Hyperscaler 2026 AI capex raised to ~$730bn combined (+78% from ~$410bn in 2025), projected to reach $1.3tn in 2027. Nvidia market cap ~$5.3-5.8tn, FY26 revenue $215.9bn, $279bn in supply commitments, >$540bn of circular-financing deals. BofA's semiconductor Bubble Risk Indicator hit 0.91; the IMF and BIS have both flagged AI circular financing as systemic risk. Michael Burry disclosed sizable NVDA puts. Alphabet fell 7% in a single session after raising its own capex guidance; Meta fell on its report too.",
+      "duration": "cyclical, multi-year resolution",
+      "evidence": [
+        {"src": "ValueAddVC — Nvidia valuation 2026, $5.3-5.6T market cap", "url": "https://valueaddvc.com/blog/nvidia-valuation-in-2026-is-the-3t-market-cap-justified-by-the-ai-capex-cycle"},
+        {"src": "TradingView / ProjectSyndicate — NVDA 2026 catalysts & risks overview", "url": "https://www.tradingview.com/chart/NVDA/TAY25bcp-Nvidia-NVDA-2026-Catalysts-Risks-Institutional-Overview/"},
+        {"src": "Yahoo Finance — Nvidia's $5.5 trillion valuation", "url": "https://finance.yahoo.com/markets/stocks/articles/nvidia-5-5-trillion-valuation-133034196.html"}
+      ],
+      "beneficiaries": ["NVDA (until it breaks)", "MU", "MRVL"],
+      "losers": ["Every AI-adjacent name on a de-rating", "growth equities broadly if the 10-year holds above 4.5%"],
+      "portfolio_action": "NVDA is a watchlist name, not a core hold — correct call. The right structural question is not 'does AI end' but 'where does the money survive a digestion period'. Memory (MU), connectivity (MRVL, AVGO, ALAB) and power (GEV, NEE, CAT) survive a capex digestion; NVDA's multiple does not. Keep total AI-hardware exposure ≤40% of the portfolio."
+    },
+    {
+      "id": "energy-01",
+      "category": "energy",
+      "theme": "The power capacity squeeze is now the bottleneck for AI itself",
+      "what_changed": "GE Vernova gas power equipment backlog and slot reservations climbed from 83 GW (end-2025) to 100 GW (Q1 2026) to 116 GW (Q2 2026), targeting 125 GW by year-end 2026. Only 53 GW is firm backlog; 63 GW is paid reservations. Total backlog $176bn. Lead times for a heavy-duty turbine now run to 2031; combined-cycle plant lead times have stretched from 3.5 years (2023) to ~5 years, and 7 for some frames. Output plan: 20 GW/yr from Q3 2026, 24 GW in 2028, 30 GW in 2030.",
+      "duration": "multi-year (through 2031 at minimum)",
+      "evidence": [
+        {"src": "GE Vernova Q2 2026 results", "url": "https://www.gevernova.com/news/articles/ge-vernova-releases-second-quarter-2026-financial-results"},
+        {"src": "Yahoo Finance — the gas turbine shortage just became AI's biggest constraint", "url": "https://finance.yahoo.com/energy/articles/gas-turbine-shortage-just-became-210000180.html"},
+        {"src": "Utility Dive — GE Vernova backlog climbs to 116 GW", "url": "https://www.utilitydive.com/news/ge-vernova-gas-turbine-backlog-climbs-to-116-gw/826039/"}
+      ],
+      "beneficiaries": ["GEV", "CAT", "NEE", "BE", "XOM", "CVX"],
+      "losers": ["Data center developers without secured power", "AI capex timelines"],
+      "portfolio_action": "GEV is the single best expression of the AI-power bottleneck and is already on the monitor list with the strongest backtest numbers in the file (Sharpe 1.39, max drawdown -23%). Add it. CAT is the same trade with a $72.1bn backlog, +92% y/y, $42.5bn converting within 12 months."
+    },
+    {
+      "id": "energy-02",
+      "category": "energy",
+      "theme": "Utilities are re-rating from yield plays to AI-infrastructure platforms",
+      "what_changed": "North American natural resources M&A hit a record $330.5bn in 1H26, with utility/power at ~70% of it. NextEra announced an all-stock $67bn acquisition of Dominion Energy (combined enterprise value ~$420bn), filed for regulatory approval July 15, 2026, expected to close 2H 2027. NextEra: 21 GW of hyperscaler opportunities in FPL's pipeline, ~12 GW in advanced negotiations; definitive US-Japan agreements to fund up to 10 GW of gas generation in Texas and Pennsylvania by end-2028; plans 15-30 GW of new capacity by 2035; Brookfield partnership to invest ~$100bn in an AI data center campus in Paducah, Kentucky.",
+      "duration": "multi-year",
+      "evidence": [
+        {"src": "Ion Analytics / Mergermarket — record North America natural resources M&A", "url": "https://ionanalytics.com/insights/mergermarket/ai-driven-power-demand-fuels-record-north-america-natural-resources-ma/"},
+        {"src": "PwC — Power and Utilities US Deals 2026 midyear outlook", "url": "https://www.pwc.com/us/en/industries/energy-utilities-resources/library/power-utilities-deals-outlook.html"},
+        {"src": "NextEra / Dominion merger filing release, July 15 2026", "url": "https://www.sec.gov/Archives/edgar/data/715957/000110465926086667/tm2621285d1_425.htm"}
+      ],
+      "beneficiaries": ["NEE", "D (Dominion)", "GEV", "CAT", "BE"],
+      "losers": ["None directly; watch for regulatory denial risk on NEE/D"],
+      "portfolio_action": "NEE is the right structural hold but the Dominion merger adds execution and regulatory risk on top of a stock that has been flat for two years. Treat NEE as the power-sector anchor; if you want more upside, GEV or CAT gives the same exposure with a cleaner single-theme story."
+    },
+    {
+      "id": "energy-03",
+      "category": "energy",
+      "theme": "Nuclear is back — 9.8 GW of hyperscaler commitments in 13 deals",
+      "what_changed": "Amazon, Google, Meta and Microsoft have signed for roughly 9.8 GW of nuclear output from operating, restarted and uprated US reactors; the IEA counts 45 GW of conditional agreements with SMR projects. First new capacity: Three Mile Island Unit 1's 835 MW restart (Microsoft, Constellation) targeted H2 2027. Amazon signed a 20-year PPA with Constellation for up to 690 MW from Calvert Cliffs (incl. a 190 MW uprate) plus a joint SMR exploration; Amazon also committed 12 Xe-100 SMRs at Cascade, WA. Meta up to 6.6 GW across TerraPower, Oklo, Vistra and Constellation targeting 2032-2035.",
+      "duration": "multi-year (2027-2035)",
+      "evidence": [
+        {"src": "Nuclear News Network — nuclear power for data centers, every deal tracked", "url": "https://www.nuclearnewsnetwork.com/news/nuclear-power-data-centers-explained"},
+        {"src": "Axis Intelligence — nuclear energy for data centers 2026, 9.8 GW committed", "url": "https://axis-intelligence.com/nuclear-energy-for-data-centers/"},
+        {"src": "Baltimore Sun / Dow Jones — Amazon deal with Calvert Cliffs", "url": "https://www.tradingview.com/news/DJN_DN20260930007443:0"}
+      ],
+      "beneficiaries": ["CEG (Constellation)", "TLN (Talen)", "VST (Vistra)", "NRG", "OKLO", "OKLO-type SMR names"],
+      "losers": ["Peak-gas-only power economics"],
+      "portfolio_action": "Add CEG to the watchlist as the listed nuclear-expression of the AI power theme. It is not defense; it is regulated baseload power that has become a scarce resource. Note it is a new position — size it as a small satellite alongside GEV/CAT, not a replacement."
+    },
+    {
+      "id": "energy-04",
+      "category": "energy",
+      "theme": "Behind-the-meter fuel cells: the shortest path to powering an AI campus",
+      "what_changed": "Bloom Energy: ~250 MW across nearly two dozen AI infrastructure customers, up from near zero two years ago. Oracle master agreement for up to 2.8 GW (1.2 GW contracted, deployment underway into 2027). AEP is building a $4bn, 702 MW Bloom fuel cell plant near Cheyenne, Wyoming under a 20-year Google PPA, online by end-2028. $5bn Brookfield partnership for global AI data centers. Equinix deployments across 19 data centers (>100 MW). Bloom is doubling manufacturing capacity from 1 GW to 2 GW annually by end-2026 (~$100m investment). Fuel cells can bring a data center online in ~90 days without grid connection.",
+      "duration": "multi-year",
+      "evidence": [
+        {"src": "Bloom Energy press release — expanded MiTAC partnership, Aug 6 2026", "url": "https://investor.bloomenergy.com/press-releases/press-release-details/2026/Bloom-Energy-Continues-to-Set-the-Standard-for-AI-Onsite-Power-with-Expanded-MiTAC-Partnership/default.aspx"},
+        {"src": "Bloom Energy press release — Oracle partnership up to 2.8 GW, April 13 2026", "url": "https://investor.bloomenergy.com/press-releases/press-release-details/2026/Bloom-Energy-and-Oracle-Expand-Strategic-Partnership-to-Deploy-up-to-2-8-GW-to-Accelerate-AI-Infrastructure-Build-Out/default.aspx"},
+        {"src": "Power Magazine — AEP plans $4bn fuel cell power plant for Google", "url": "https://www.powermag.com/aep-plans-4-billion-fuel-cell-power-plant-for-google-signs-up-to-1-6-gw-mainspring-generator-deal/"}
+      ],
+      "beneficiaries": ["BE", "GEV", "CAT", "NEE"],
+      "losers": ["Grid-dependent data center timelines"],
+      "portfolio_action": "BE pending order at $248.90 is the highest-risk line in the plan — the backtest shows 1359% market-aware return but -54.6% max drawdown and -75.9% buy-and-hold drawdown. This is a venture-style position: keep it small (5-8%), and treat the Oracle and AEP contracts as the reason to hold rather than the backtest."
+    },
+    {
+      "id": "energy-05",
+      "category": "energy",
+      "theme": "US LNG: the structural shock absorber, growing ~20% by end-2027",
+      "what_changed": "US LNG exports averaged 17.4 Bcf/d in 1H26, +23% y/y, the fastest growth since large-scale exports began in 2016; EIA forecasts 18.7 Bcf/d in 1H27. Five export projects start up or ramp by end-2027 (Corpus Christi Stage 3, Golden Pass, Port Arthur Phase 1, Rio Grande LNG). When the Strait of Hormuz closed in March 2026 it cut off ~20% of global LNG trade, mostly Qatari, which doubled US shipments to Asia (+108%). JKM hit a four-year high of $15.56/MMBtu.",
+      "duration": "multi-year",
+      "evidence": [
+        {"src": "EIA — US LNG exports rose 23% in the first half of 2026", "url": "https://www.eia.gov/todayinenergy/detail.php?id=68064"},
+        {"src": "Investing.com — North American supply could keep prices subdued through 2027 (BMO: +20% LNG capacity by end-2027)", "url": "https://www.investing.com/analysis/natural-gas-north-american-supply-could-keep-prices-subdued-through-2027-200689378"},
+        {"src": "EIA — US natural gas exports to grow nearly 30% by 2027", "url": "https://www.eia.gov/todayinenergy/detail.php?id=67484"}
+      ],
+      "beneficiaries": ["XOM", "CVX", "Cheniere (LNG)", "GEV", "utilities with gas generation"],
+      "losers": ["European/Asian gas importers on a spike", "NEE on a gas-cost pass-through lag"],
+      "portfolio_action": "HOLD XOM and CVX. This is the single clearest multi-year trend in the portfolio and it is not defence-related. Do not add to them here — they are already 15% combined and the energy shock is partially priced into Brent's forward curve ($86 for Dec 2027)."
+    },
+    {
+      "id": "space-01",
+      "category": "space",
+      "theme": "Space economy compounding at 11-17% — but growth is concentrated in orbital infrastructure, not launch",
+      "what_changed": "The global space economy was $556bn in 2025, $609bn in 2026, forecast $944bn by 2031 (11.2% CAGR). LEO is the fastest of the major orbit classes at 17.2% CAGR ($182bn to $403bn); broadband/connectivity 13.5% CAGR. Launch services are $22.7bn in 2026 (3.7% of the economy) growing at 14.8% CAGR to $41bn by 2031 — faster than the headline but still a small slice, and SpaceX holds ~87% of global upmass with reusable heavy-lift capturing >70% of upmass-weighted launch revenue. Allianz: LEO services go from ~$16bn (2025) to ~$120bn (2030), a 7-8x expansion, inside a space economy tripling to $1.8tn+ by 2035.",
+      "duration": "multi-year (through 2031-2035)",
+      "evidence": [
+        {"src": "HiQual Insights — Space Economy: LEO Constellations & Launch Market 2026-2031", "url": "https://hiqualinsights.com/reports/space-economy-leo-launch-market-2026-2031"},
+        {"src": "Allianz Research — Low earth, high stakes, July 2026", "url": "https://www.allianz.com/content/dam/onemarketing/azcom/Allianz_com/economic-research/publications/specials/en/2026/july/2026_07_01_LEO_Satellites.pdf"},
+        {"src": "OECD — The Space Economy at a Glance 2026", "url": "https://www.oecd.org/content/dam/oecd/en/publications/reports/2026/09/the-space-economy-at-a-glance-2026_92b228b7/cbf9b240-en.pdf"}
+      ],
+      "beneficiaries": ["RKLB", "ASTS", "LUNR", "satellite-component suppliers"],
+      "losers": ["Launch-only business models against SpaceX"],
+      "portfolio_action": "The space theme is intact but the launch sub-segment is a smaller share of it than the narrative implies. Do not size RKLB as if launch is the whole space economy."
+    },
+    {
+      "id": "space-02",
+      "category": "space",
+      "theme": "Rocket Lab: the thesis is intact, the catalyst just moved a year",
+      "what_changed": "On Oct 14, 2026 Rocket Lab confirmed Neutron's first flight has slipped to 2027 (fourth slip since 2021) due to a carbon-composite forward-dome manufacturing defect. Stock fell 7.9% on the day, another ~7.3% after hours, and 6.6% the next session; it is ~63% below its May 27, 2026 all-time high of $151, closing near $52-53. Underlying fundamentals are unchanged and strong: Q2 2026 revenue $234m (+62% y/y), $437m+ in new launch contracts, total backlog $2.2-2.4bn, 90+ launches, a $397m Space Force SB-AMTI contract, $160m+ across two GEO satellite builds, and a Kepler dedicated Neutron mission for 2028. CFO: cash-flow positivity is a function of Neutron's first successful launch and could take 18-24 months after that.",
+      "duration": "multi-year, catalyst deferred to 2027",
+      "evidence": [
+        {"src": "Yahoo Finance — Rocket Lab shares slide 15% as Neutron launch delayed until 2027", "url": "https://finance.yahoo.com/markets/stocks/articles/rocket-lab-shares-slide-15-102958258.html"},
+        {"src": "TheStreet — tiny air pockets stall Rocket Lab's answer to SpaceX", "url": "https://www.thestreet.com/investing/rocket-lab-neutron-delay-2027"},
+        {"src": "SEC filing — Rocket Lab Q2 2026 results (revenue $234m, $437m new launch contracts)", "url": "https://www.sec.gov/Archives/edgar/data/1819994/000181999426000061/rklb-08102026ex991.htm"}
+      ],
+      "beneficiaries": ["RKLB (buyers of the post-delay entry)"],
+      "losers": ["Any position sized to a 2026 Neutron flight"],
+      "portfolio_action": "This is the clearest buy-the-delay opportunity in the portfolio: the backlog, the Space Force award and the commercial bookings are real and unchanged; only the flight date moved. But it is a $33-35bn market cap against $769m trailing revenue (~41-54x sales) on a GAAP loss, so size it as the small, high-volatility conviction position it already is. Do NOT add to RKLB here — the pending 258-share order at $58.06 is already above the current ~$52-53 price; let it fill, then hold. Wait for a successful Neutron flight plus 18-24 months of cash-flow commentary before sizing up."
+    },
+    {
+      "id": "macro-01",
+      "category": "macro",
+      "theme": "Rates are going UP, not down — the Fed has re-entered a hiking cycle",
+      "what_changed": "The FOMC unanimously raised the fed funds target 25bp to 3.75-4.00% at its Sept 15-16, 2026 meeting — the first increase since July 2023. The September minutes (released Oct 7) show officials 'overwhelmingly' concluded more work was needed; 16 of 18 policymakers expected at least one more quarter-point move by year-end, and most wanted rates at or above that level throughout 2027. Fed staff projected inflation reaching 2% only in 2029. October hike odds have swung from ~70% to ~23% on Jefferson and Williams pushing back, but U.S. Bank now expects a cumulative 75bp of increases between September 2026 and March 2027, peaking at 4.25-4.50%.",
+      "duration": "multi-year (through 2027-2028)",
+      "evidence": [
+        {"src": "NYT — Fed minutes show officials saw more work to do to quell inflation", "url": "https://www.nytimes.com/2026/10/07/business/fed-minutes-show-officials-saw-more-work-to-do-to-quell-inflation.html"},
+        {"src": "ANI — Fed minutes signal another hike likely by year-end", "url": "https://www.aninews.in/news/business/us-fed-minutes-signal-another-rate-hike-likely-by-year-end-amid-persistent-inflation20261008075635"},
+        {"src": "U.S. Bank October 2026 Economic Outlook — 75bp cumulative tightening to 4.25-4.50%", "url": "https://www.usbank.com/content/dam/usbank/en/documents/pdfs/corporate-and-commercial-banking/october-26-economics.pdf"}
+      ],
+      "beneficiaries": ["XOM", "CVX", "NEE", "banks", "short-duration cash"],
+      "losers": ["NVDA-type premium multiples", "GOOGL", "RKLB", "unprofitable growth (BE, QBTS, RGTI, IREN)"],
+      "portfolio_action": "This is the most important macro fact for the portfolio and it argues for reducing unprofitable-growth exposure. The Sharesies holdings in QBTS (-33% in 6 months), RGTI (-35%), IREN (-36%) and DTIL (-35%) are exactly the names that get de-rated by a hiking Fed. If you are not adding to them, they are a slow leak. Harvest them into the power and memory names that are earning through the cycle."
+    },
+    {
+      "id": "macro-02",
+      "category": "macro",
+      "theme": "Inflation is supply-shock driven and the Fed cannot fix it",
+      "what_changed": "The IMF's October 2026 World Economic Outlook (released Oct 13 in Bangkok) puts global growth at 3.1% in 2026 and 3.4% in 2027, with inflation reaching 4.7% this year on higher energy and food prices, and flags that 'the margins of adjustment that made the global economy resilient are rapidly narrowing'. IMF estimates a ~30% probability US growth falls below 1% in 2027 (a mild recession starting Q4 2026) and a ~30% probability US headline inflation exceeds 4% in 2027. Fed staff see 2% inflation only in 2029. US CPI has now been above 2% for the longest stretch of the 21st century, and economists warn the Fed risking recession by hiking into a supply shock.",
+      "duration": "multi-year",
+      "evidence": [
+        {"src": "IMF WEO press briefing, Bangkok, Oct 13 2026", "url": "https://mediacenter.imf.org/news/imf-world-economic-output-press-briefing/s/85df82f1-2ffe-44b3-91c4-a7a0e01042ae"},
+        {"src": "IMF — Global Economic Resilience Is Under Strain", "url": "https://www.imf.org/en/blogs/articles/2026/10/12/global-economic-resilience-is-under-strain-demanding-decisive-policy-action"},
+        {"src": "CNBC — rate-hike odds rising after CPI; recession risk debate", "url": "https://www.cnbc.com/2026/10/15/cctv-script-15/10/26.html"}
+      ],
+      "beneficiaries": ["XOM", "CVX", "NEE", "GEV", "CAT", "gold (GLD)"],
+      "losers": ["rate-sensitive equities", "consumer discretionary"],
+      "portfolio_action": "The inflation regime argues for a real-asset sleeve. Gold has already pulled back ~25% from its late-January 2026 record (spot ~$4,188 on Oct 13) with central banks buying 289 tonnes in Q2 2026 (+62% y/y) — J.P. Morgan still sees $6,000/oz by Q4 2026. On Sharesies, Smartshares GLD (NZX, PIE-taxed, 0.55% TER) or ASX GDX are the clean ways to add a 3-5% gold allocation. This is the single highest-conviction addition in this brief."
+    },
+    {
+      "id": "macro-03",
+      "category": "macro",
+      "theme": "China's 15th Five-Year Plan doubles down on technology self-sufficiency, not consumption",
+      "what_changed": "The 15th FYP (2026-2030), adopted at the Fourth Plenum on Oct 23, 2025 and ratified at the March 2026 NPC, sets a 2026 GDP target of 4.5-5% (down from ~5%) and includes a binding target to raise total energy production capacity by more than 20%. R&D spending to grow at least 7% annually (~40% cumulative). The value-added of 'core digital economy industries' to reach 12.5% of GDP. Critically, the household-consumption objective remains secondary with no binding figures or timetable.",
+      "duration": "multi-year (2026-2030)",
+      "evidence": [
+        {"src": "BNP Paribas — China's 15th Five-Year Plan: prioritising power over addressing imbalances", "url": "https://economic-research.bnpparibas.com/Media-Library/en-US/China-15th-Five-Year-Plan-prioritising-power-over-addressing-imbalances-5/11/2026,c44951"},
+        {"src": "European Parliament EPRS briefing on the 15th FYP", "url": "https://www.europarl.europa.eu/RegData/etudes/BRIE/2026/785724/EPRS_BRI(2026)785724_EN.xml"},
+        {"src": "KPMG — Key Takeaways from China's 2026 Two Sessions", "url": "https://assets.kpmg.com/content/dam/kpmgsites/cn/pdf/en/2026/03/key-points-of-the-two-sessions-in-2026-an-interpretation.pdf.coredownload.inline.pdf"}
+      ],
+      "beneficiaries": ["Domestic Chinese tech (not in this portfolio)", "AI hardware (demand for compute)", "energy and power equipment"],
+      "losers": ["New Zealand and Australian exporters levered to Chinese consumption (dairy, tourism)"],
+      "portfolio_action": "This is the main reason to be cautious about AIR (Air New Zealand) and other China-levered consumer exports. New Zealand's China-bound goods ran at nearly double the next two export markets combined, so a plan that suppresses Chinese household consumption is a headwind to NZ export income."
+    },
+    {
+      "id": "macro-04",
+      "category": "macro",
+      "theme": "New Zealand: the RBNZ is hiking too, and oil is the transmission mechanism",
+      "what_changed": "The RBNZ raised the OCR 25bp to 2.75% on Sept 2, 2026 with inflation at 4.1% driven by Middle East fuel prices, and signalled another increase could follow by year-end. Chief Economist Paul Conway said on Oct 15 the late-October decision is 'completely open' between a hold and a 25bp hike. ASB expects 25bp hikes at both the October and December meetings to a 3.25% end-2026 OCR; Westpac expects a pause in October and a hike in December, with a 4% peak in 2027 and a 4.25% peak held through 2028 before returning to neutral in 2029.",
+      "duration": "multi-year (through 2029)",
+      "evidence": [
+        {"src": "Pound Sterling Live — RBNZ's Conway keeps the hike alive (ASB: 3.25% end-2026 OCR)", "url": "https://www.poundsterlinglive.com/nzd/23759-new-zealand-dollar-best-performer-rbnz-usd-pullback"},
+        {"src": "Westpac — RBNZ MPS review, Sept 2 2026", "url": "https://assets.dam.westpac.co.nz/is/content/wnzl/dist/all-of-bank/economic-reports/economic-data/Economic-Data_020926-MPS-review_bulletin_02Sep26.pdf"},
+        {"src": "ANZ — RBNZ MPR review, July 8 2026", "url": "https://www.anz.co.nz/content/dam/anzconz/documents/economics-and-market-research/2026/ANZ-RBNZ-MPR-Review-20260708.pdf"}
+      ],
+      "beneficiaries": ["NZD assets", "NZ banks", "inflation-linked NZ assets"],
+      "losers": ["NZ rate-sensitive equities", "NZX 50 growth names", "Sharesies NZ-listed holdings"],
+      "portfolio_action": "The NZ-listed holdings in the Sharesies portfolio (AIR, CO2, PEB, USH) are the most exposed to a hiking RBNZ. Prefer NZD-hedged or US-listed growth exposure while the OCR is rising — the existing US-heavy allocation is correctly positioned."
+    }
+  ],
+  "portfolio_recommendations": [
+    {"action": "ADD", "ticker": "GEV", "name": "GE Vernova", "theme": "energy-01", "rationale": "116 GW gas power backlog (+40% in six months), $176bn total backlog, 2031 lead times. Best non-defense expression of the AI power bottleneck. Backtest in file: Sharpe 1.392, max drawdown -23.45%.", "suggested_weight": "5-7%"},
+    {"action": "ADD", "ticker": "CEG", "name": "Constellation Energy", "theme": "energy-03", "rationale": "9.8 GW of hyperscaler nuclear commitments; Calvert Cliffs 690 MW Amazon PPA signed Sept 30, 2026; 835 MW Crane restart for Microsoft on track H2 2027. Regulated baseload scarcity.", "suggested_weight": "3-5%"},
+    {"action": "ADD", "ticker": "GLD", "name": "Smartshares Gold (NZX) or ASX GDX", "theme": "macro-02", "rationale": "Supply-shock inflation the Fed cannot fix, central banks bought 289t in Q2 2026 (+62% y/y), gold ~25% below its Jan 2026 record. 3-5% real-asset sleeve. On Sharesies: NZX GLD (PIE, 0.55% TER) or ASX GDX.", "suggested_weight": "3-5%"},
+    {"action": "ADD", "ticker": "ALAB", "name": "Astera Labs", "theme": "tech-03", "rationale": "Rack-scale AI interconnect pure play. Q2 2026 revenue +104% y/y to $392m, Q3 guided $540-560m (+40% sequential). Cleaner than MRVL at 62x forward earnings.", "suggested_weight": "3-5%"},
+    {"action": "TRIM", "ticker": "QBTS", "name": "D-Wave Quantum", "theme": "macro-01", "rationale": "-33% in 6 months, RSI 15.9, -36.7% below its 200-DMA. Unprofitable, zero structural moat vs. the AI hardware build. Hiking Fed punishes this exact profile.", "suggested_weight": "exit or cut to token"},
+    {"action": "TRIM", "ticker": "RGTI", "name": "Rigetti Computing", "theme": "macro-01", "rationale": "-35% in 6 months, RSI 16.2, -29.3% below 200-DMA. Same rationale as QBTS.", "suggested_weight": "exit or cut to token"},
+    {"action": "TRIM", "ticker": "IREN", "name": "IREN Ltd", "theme": "macro-01", "rationale": "-36% in 6 months, RSI 10.9, -33.1% below 200-DMA. Bitcoin-miner/power arbitrage is a high-beta beta to a risk-off, high-rate regime.", "suggested_weight": "exit or cut to token"},
+    {"action": "TRIM", "ticker": "AIR", "name": "Air New Zealand", "theme": "macro-03", "rationale": "-17% below its 200-DMA, RSI 22.5, -27.6% 3-month return. China's 15th FYP suppresses the consumption that NZ export income depends on, and the RBNZ is hiking.", "suggested_weight": "cut to token or exit"},
+    {"action": "HOLD", "ticker": "XOM", "theme": "geo-01, energy-05", "rationale": "Hormuz disruption plus refinery capacity down 10% plus US LNG growth. 8% weight is appropriate; do not add at this level.", "suggested_weight": "8%"},
+    {"action": "HOLD", "ticker": "CVX", "theme": "geo-01, energy-05", "rationale": "Same as XOM. Energy security theme intact.", "suggested_weight": "7%"},
+    {"action": "HOLD", "ticker": "NEE", "theme": "energy-02", "rationale": "AI power demand story is real but the Dominion merger adds regulatory/execution risk on a stock flat for two years. Anchor, not a grower.", "suggested_weight": "7%"},
+    {"action": "HOLD", "ticker": "MRVL", "theme": "tech-03", "rationale": "Custom ASIC $12bn+ by FY2029, $30bn FY27+FY28 outlook. Highest conviction name in the paper book but also the most expensive. Cap it.", "suggested_weight": "cap at 15%"},
+    {"action": "HOLD", "ticker": "MU", "theme": "tech-02", "rationale": "Memory supercycle confirmed with CY2027 HBM contracted at much higher prices. Peak-cycle margins argue against adding, not against holding.", "suggested_weight": "10-12%"},
+    {"action": "HOLD", "ticker": "RKLB", "theme": "space-02", "rationale": "Neutron slipped to 2027 but backlog, SB-AMTI and GEO wins are unchanged. 41-54x sales means small size only.", "suggested_weight": "5-8%"},
+    {"action": "HOLD", "ticker": "BE", "theme": "energy-04", "rationale": "Oracle 2.8 GW master agreement and the $4bn AEP/Google Wyoming fuel cell plant are real. But -75.9% B&H drawdown means this is a venture position.", "suggested_weight": "5% max"},
+    {"action": "DO NOT ADD", "ticker": "NVDA", "theme": "tech-04", "rationale": "Watchlist only. $5.3-5.8tn cap, $279bn supply commitments, >$540bn circular financing, BofA Bubble Risk Indicator 0.91, Burry puts. The risk is concentration, not execution.", "suggested_weight": "0% new money"},
+    {"action": "DO NOT ADD", "ticker": "INTC", "theme": "tech-01", "rationale": "Government-sponsored policy asset: $8.9bn state investment, 9.9% passive stake, $627bn valuation, $3.7bn quarterly loss, external foundry revenue only $293m in Q2. Structural bet, not an investment.", "suggested_weight": "0%"}
+  ],
+  "next_review_triggers": [
+    "Oct 27-28, 2026 — FOMC decision (hike odds swung 70% -> 23% in a week; watch the December meeting instead)",
+    "Oct 28, 2026 — RBNZ OCR decision ('completely open' per Conway)",
+    "Nov 9-10, 2026 — Section 301 exclusions and 30-for-30 tariff framework expire",
+    "Jan 10, 2027 — US-China Busan truce extension deadline",
+    "Nov 2026 — China's rare-earth expanded controls suspension expires",
+    "Q4 2026 — Rocket Lab first-stage assembly completion, Neutron launch date announcement",
+    "Ongoing — Strait of Hormuz tanker flow and Brent forward curve (Dec 2027 contract at $86)",
+    "Ongoing — Micron HBM CY2027 pricing reset and HBM4E/NV-HBM ramp",
+    "Ongoing — GE Vernova GW backlog and gas turbine lead times"
+  ]
+}

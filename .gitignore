@@ -42,3 +42,4 @@ __pycache__/
 # Personal financial data -- never commit
 sharesies_*.json
 sharesies_*.md
+screener_results_prev.json

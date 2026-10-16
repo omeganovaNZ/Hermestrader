@@ -1,0 +1,20 @@
+[
+  {
+    "date": "2026-10-17T10:41:05.531499",
+    "symbol": "LLY",
+    "action": "TRIM",
+    "shares_sold": 1,
+    "trim_pct": 0.2,
+    "reason": "Ensemble score -0.182 < -0.1",
+    "remaining_shares": 6
+  },
+  {
+    "date": "2026-10-17T10:41:39.590427",
+    "symbol": "LLY",
+    "action": "TRIM",
+    "shares_sold": 1,
+    "trim_pct": 0.2,
+    "reason": "Ensemble score -0.182 < -0.1",
+    "remaining_shares": 6
+  }
+]
