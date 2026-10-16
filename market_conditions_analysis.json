@@ -1,0 +1,12 @@
+{
+  "date": "2026-10-17T00:32:31.576849",
+  "average_adx": 32.15366221719272,
+  "median_adx": 28.743245973068195,
+  "regime_counts": {
+    "trending": 7,
+    "ranging": 1,
+    "transition": 9
+  },
+  "average_volatility": 43.81871320869208,
+  "recommendations": []
+}

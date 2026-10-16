@@ -1,0 +1,40 @@
+# Credentials & secrets
+alpaca_config.txt
+*.env
+.env
+config.ini
+
+# OS junk
+NTUSER.DAT*
+ntuser.ini
+ntuser.dat.LOG*
+Desktop/
+Documents/
+Downloads/
+Pictures/
+Music/
+Videos/
+AppData/
+Local Settings/
+Cookies/
+Recent/
+Saved Games/
+Searches/
+SendTo/
+Start Menu/
+Favorites/
+Links/
+OneDrive/
+3D Objects/
+Contacts/
+Application Data/
+Tracing/
+Folding at Home/
+
+# Python
+__pycache__/
+*.pyc
+
+# Temp
+*.tmp
+*.log

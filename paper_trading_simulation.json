@@ -1,0 +1,21 @@
+{
+  "simulation_results": [
+    {
+      "day": 1,
+      "date": "2026-10-17T00:31:22.170552",
+      "portfolio_value": 100000.0,
+      "cash": 100000.0,
+      "num_positions": 0,
+      "num_signals": 17,
+      "buy_signals": 0,
+      "sell_signals": 3,
+      "trades_executed": 0
+    }
+  ],
+  "trades": [],
+  "final_state": {
+    "portfolio_value": 100000.0,
+    "cash": 100000.0,
+    "positions": []
+  }
+}

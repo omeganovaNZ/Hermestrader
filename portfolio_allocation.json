@@ -1,0 +1,94 @@
+{
+  "core_holdings": {
+    "description": "Long-term holds with strong fundamentals and structural tailwinds",
+    "stocks": [
+      {
+        "ticker": "NVDA",
+        "name": "NVIDIA",
+        "allocation_pct": 0.15,
+        "rationale": "AI infrastructure supercycle, $31.6T projected investment through 2050",
+        "config": "SEMICONDUCTOR_LOGIC",
+        "entry_strategy": "Buy on pullbacks to 50-day EMA, hold through volatility",
+        "risk_level": "high"
+      },
+      {
+        "ticker": "MU",
+        "name": "Micron",
+        "allocation_pct": 0.12,
+        "rationale": "Memory chip AI demand, cyclical recovery with hybrid strategy edge",
+        "config": "SEMICONDUCTOR_MEMORY",
+        "entry_strategy": "Buy on dips when RSI < 30, hold through cycle",
+        "risk_level": "high"
+      },
+      {
+        "ticker": "GOOGL",
+        "name": "Alphabet",
+        "allocation_pct": 0.1,
+        "rationale": "AI and cloud growth, undervalued vs peers",
+        "config": "US_TECH",
+        "entry_strategy": "Buy on market weakness, long-term hold",
+        "risk_level": "medium"
+      }
+    ]
+  },
+  "growth_holdings": {
+    "description": "Higher risk/reward with structural tailwinds",
+    "stocks": [
+      {
+        "ticker": "RKLB",
+        "name": "Rocket Lab",
+        "allocation_pct": 0.08,
+        "rationale": "Space economy growth, satellite demand from defense and commercial",
+        "config": "NZ_AUS",
+        "entry_strategy": "Small position, wide stops, hold for multi-year growth",
+        "risk_level": "very_high"
+      },
+      {
+        "ticker": "AMD",
+        "name": "AMD",
+        "allocation_pct": 0.08,
+        "rationale": "AI GPU market share gains, undervalued vs NVDA",
+        "config": "SEMICONDUCTOR_LOGIC",
+        "entry_strategy": "Buy on pullbacks, hold through volatility",
+        "risk_level": "high"
+      }
+    ]
+  },
+  "energy_transition": {
+    "description": "Energy stocks benefiting from geopolitical tensions and supply chain shifts",
+    "stocks": [
+      {
+        "ticker": "XOM",
+        "name": "Exxon Mobil",
+        "allocation_pct": 0.08,
+        "rationale": "Energy price upside from geopolitical tensions, strong dividends",
+        "config": "US_TECH",
+        "entry_strategy": "Buy on dips, hold for income and growth",
+        "risk_level": "medium"
+      },
+      {
+        "ticker": "CVX",
+        "name": "Chevron",
+        "allocation_pct": 0.07,
+        "rationale": "Energy security focus, integrated oil major",
+        "config": "US_TECH",
+        "entry_strategy": "Buy on dips, hold for income",
+        "risk_level": "medium"
+      },
+      {
+        "ticker": "NEE",
+        "name": "NextEra Energy",
+        "allocation_pct": 0.07,
+        "rationale": "Renewable energy transition, AI data center power demand",
+        "config": "US_TECH",
+        "entry_strategy": "Buy on weakness, long-term hold",
+        "risk_level": "medium"
+      }
+    ]
+  },
+  "cash_buffer": {
+    "description": "Cash reserve for opportunities and risk management",
+    "allocation_pct": 0.25,
+    "rationale": "25% cash allows buying opportunities during market stress"
+  }
+}

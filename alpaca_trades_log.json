@@ -1,0 +1,65 @@
+[
+  {
+    "date": "2026-10-17T00:37:28.057315",
+    "action": "BUY",
+    "symbol": "PK",
+    "shares": 317,
+    "price": 15.76,
+    "cost": 4995.92,
+    "rationale": "Initial portfolio entry \u2014 5% allocation"
+  },
+  {
+    "date": "2026-10-17T00:57:27.921608",
+    "action": "BUY",
+    "symbol": "AMD",
+    "shares": 16,
+    "price": 589.46,
+    "cost": 9431.36,
+    "rationale": "Earnings ~Nov 3 (2 weeks), 4 consecutive beats, 89% beat rate, post-earnings momentum likely",
+    "catalyst": "Earnings Nov 3",
+    "sell_date": "2026-11-16",
+    "strategy": "1-MONTH_TRADE"
+  },
+  {
+    "date": "2026-10-17T00:57:28.172981",
+    "action": "BUY",
+    "symbol": "LLY",
+    "shares": 7,
+    "price": 1322.97,
+    "cost": 9260.79,
+    "rationale": "Earnings ~late Oct (2 weeks), GLP-1 growth, raising guidance, healthcare sector accumulating",
+    "catalyst": "Earnings late Oct",
+    "sell_date": "2026-11-16",
+    "strategy": "1-MONTH_TRADE"
+  },
+  {
+    "date": "2026-10-17T01:45:53.474457",
+    "action": "BUY",
+    "symbol": "MRVL",
+    "shares": 395,
+    "price": 252.59,
+    "cost": 99773.05,
+    "rationale": "Full portfolio investment \u2014 AI custom ASIC duopoly, 42 Buy/0 Sell analysts, +40% upside target, Google TPU catalyst",
+    "strategy": "FULL_INVESTMENT"
+  },
+  {
+    "date": "2026-10-17T01:53:59.073081",
+    "action": "BUY",
+    "symbol": "MRVL",
+    "shares": 98,
+    "price": 252.59,
+    "cost": 24753.82,
+    "rationale": "Additional $25k MRVL investment",
+    "strategy": "ADD_TO_POSITION"
+  },
+  {
+    "date": "2026-10-17T02:00:09.878505",
+    "action": "BUY",
+    "symbol": "DDOG",
+    "shares": 45,
+    "price": 266.25,
+    "cost": 11981.25,
+    "rationale": "Fill portfolio \u2014 next best screener candidate (Score 90)",
+    "strategy": "FILL_PORTFOLIO"
+  }
+]

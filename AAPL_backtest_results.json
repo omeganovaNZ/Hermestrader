@@ -1,0 +1,497 @@
+{
+  "Momentum (20d)": {
+    "ticker": "AAPL",
+    "period": "2021-10-18 to 2026-10-15",
+    "initial_capital": 100000,
+    "final_capital": 119776.68,
+    "total_return_pct": 19.78,
+    "annualized_return_pct": 3.68,
+    "sharpe_ratio": 0.296,
+    "max_drawdown_pct": -26.87,
+    "num_trades": 30,
+    "win_rate": 0.4333,
+    "avg_trade_return": 1.14,
+    "trades": [
+      {
+        "entry_date": "2021-11-19",
+        "exit_date": "2022-01-11",
+        "entry_price": 156.82,
+        "exit_price": 171.02,
+        "shares": 605,
+        "pnl": 8586.66,
+        "return_pct": 9.05
+      },
+      {
+        "entry_date": "2022-02-09",
+        "exit_date": "2022-02-11",
+        "entry_price": 172.41,
+        "exit_price": 164.94,
+        "shares": 597,
+        "pnl": -4460.88,
+        "return_pct": -4.33
+      },
+      {
+        "entry_date": "2022-02-17",
+        "exit_date": "2022-03-01",
+        "entry_price": 165.17,
+        "exit_price": 159.62,
+        "shares": 596,
+        "pnl": -3310.94,
+        "return_pct": -3.36
+      },
+      {
+        "entry_date": "2022-03-24",
+        "exit_date": "2022-04-22",
+        "entry_price": 170.25,
+        "exit_price": 158.24,
+        "shares": 559,
+        "pnl": -6713.76,
+        "return_pct": -7.05
+      },
+      {
+        "entry_date": "2022-07-12",
+        "exit_date": "2022-09-01",
+        "entry_price": 142.87,
+        "exit_price": 154.93,
+        "shares": 620,
+        "pnl": 7481.28,
+        "return_pct": 8.45
+      },
+      {
+        "entry_date": "2022-10-28",
+        "exit_date": "2022-11-07",
+        "entry_price": 152.76,
+        "exit_price": 136.48,
+        "shares": 625,
+        "pnl": -10169.78,
+        "return_pct": -10.65
+      },
+      {
+        "entry_date": "2022-11-11",
+        "exit_date": "2022-11-28",
+        "entry_price": 147.07,
+        "exit_price": 141.69,
+        "shares": 583,
+        "pnl": -3138.79,
+        "return_pct": -3.66
+      },
+      {
+        "entry_date": "2022-12-05",
+        "exit_date": "2022-12-13",
+        "entry_price": 144.06,
+        "exit_price": 142.92,
+        "shares": 573,
+        "pnl": -653.02,
+        "return_pct": -0.79
+      },
+      {
+        "entry_date": "2023-01-20",
+        "exit_date": "2023-03-08",
+        "entry_price": 135.45,
+        "exit_price": 150.42,
+        "shares": 604,
+        "pnl": 9039.64,
+        "return_pct": 11.05
+      },
+      {
+        "entry_date": "2023-03-20",
+        "exit_date": "2023-08-04",
+        "entry_price": 154.88,
+        "exit_price": 179.32,
+        "shares": 582,
+        "pnl": 14226.04,
+        "return_pct": 15.78
+      },
+      {
+        "entry_date": "2023-09-05",
+        "exit_date": "2023-09-13",
+        "entry_price": 187.17,
+        "exit_price": 171.89,
+        "shares": 553,
+        "pnl": -8451.66,
+        "return_pct": -8.17
+      },
+      {
+        "entry_date": "2023-09-19",
+        "exit_date": "2023-09-21",
+        "entry_price": 176.68,
+        "exit_price": 171.61,
+        "shares": 539,
+        "pnl": -2733.52,
+        "return_pct": -2.87
+      },
+      {
+        "entry_date": "2023-10-11",
+        "exit_date": "2023-10-20",
+        "entry_price": 177.4,
+        "exit_price": 170.57,
+        "shares": 521,
+        "pnl": -3557.19,
+        "return_pct": -3.85
+      },
+      {
+        "entry_date": "2023-11-06",
+        "exit_date": "2024-01-03",
+        "entry_price": 176.84,
+        "exit_price": 182.03,
+        "shares": 503,
+        "pnl": 2611.82,
+        "return_pct": 2.94
+      },
+      {
+        "entry_date": "2024-01-26",
+        "exit_date": "2024-01-29",
+        "entry_price": 190.1,
+        "exit_price": 189.42,
+        "shares": 480,
+        "pnl": -327.21,
+        "return_pct": -0.36
+      },
+      {
+        "entry_date": "2024-02-05",
+        "exit_date": "2024-02-16",
+        "entry_price": 185.42,
+        "exit_price": 180.34,
+        "shares": 490,
+        "pnl": -2486.97,
+        "return_pct": -2.74
+      },
+      {
+        "entry_date": "2024-05-02",
+        "exit_date": "2024-08-05",
+        "entry_price": 171.16,
+        "exit_price": 207.29,
+        "shares": 516,
+        "pnl": 18643.06,
+        "return_pct": 21.11
+      },
+      {
+        "entry_date": "2024-08-21",
+        "exit_date": "2024-09-16",
+        "entry_price": 224.52,
+        "exit_price": 214.53,
+        "shares": 471,
+        "pnl": -4708.3,
+        "return_pct": -4.45
+      },
+      {
+        "entry_date": "2024-09-24",
+        "exit_date": "2024-09-27",
+        "entry_price": 225.48,
+        "exit_price": 225.9,
+        "shares": 448,
+        "pnl": 186.59,
+        "return_pct": 0.18
+      },
+      {
+        "entry_date": "2024-09-30",
+        "exit_date": "2024-11-05",
+        "entry_price": 231.07,
+        "exit_price": 221.6,
+        "shares": 437,
+        "pnl": -4138.73,
+        "return_pct": -4.1
+      },
+      {
+        "entry_date": "2024-11-27",
+        "exit_date": "2025-01-08",
+        "entry_price": 233.24,
+        "exit_price": 240.95,
+        "shares": 416,
+        "pnl": 3209.03,
+        "return_pct": 3.31
+      },
+      {
+        "entry_date": "2025-02-14",
+        "exit_date": "2025-03-12",
+        "entry_price": 243.1,
+        "exit_price": 215.65,
+        "shares": 411,
+        "pnl": -11282.43,
+        "return_pct": -11.29
+      },
+      {
+        "entry_date": "2025-05-06",
+        "exit_date": "2025-05-27",
+        "entry_price": 197.3,
+        "exit_price": 199.25,
+        "shares": 451,
+        "pnl": 879.7,
+        "return_pct": 0.99
+      },
+      {
+        "entry_date": "2025-06-06",
+        "exit_date": "2025-06-11",
+        "entry_price": 202.94,
+        "exit_price": 197.82,
+        "shares": 441,
+        "pnl": -2255.85,
+        "return_pct": -2.52
+      },
+      {
+        "entry_date": "2025-06-26",
+        "exit_date": "2025-08-04",
+        "entry_price": 200.03,
+        "exit_price": 202.37,
+        "shares": 436,
+        "pnl": 1019.68,
+        "return_pct": 1.17
+      },
+      {
+        "entry_date": "2025-08-08",
+        "exit_date": "2025-12-26",
+        "entry_price": 228.25,
+        "exit_price": 272.66,
+        "shares": 386,
+        "pnl": 17142.63,
+        "return_pct": 19.46
+      },
+      {
+        "entry_date": "2026-02-05",
+        "exit_date": "2026-03-05",
+        "entry_price": 275.16,
+        "exit_price": 259.83,
+        "shares": 378,
+        "pnl": -5796.51,
+        "return_pct": -5.57
+      },
+      {
+        "entry_date": "2026-04-13",
+        "exit_date": "2026-06-12",
+        "entry_price": 258.74,
+        "exit_price": 290.88,
+        "shares": 381,
+        "pnl": 12245.67,
+        "return_pct": 12.42
+      },
+      {
+        "entry_date": "2026-07-09",
+        "exit_date": "2026-08-06",
+        "entry_price": 315.95,
+        "exit_price": 312.14,
+        "shares": 348,
+        "pnl": -1324.73,
+        "return_pct": -1.2
+      },
+      {
+        "entry_date": "2026-09-01",
+        "exit_date": "2026-10-15",
+        "entry_price": 325.13,
+        "exit_price": 342.0,
+        "shares": 333,
+        "pnl": 5617.71,
+        "return_pct": 5.19
+      }
+    ]
+  },
+  "Mean Reversion (BB)": {
+    "ticker": "AAPL",
+    "period": "2021-10-18 to 2026-10-15",
+    "initial_capital": 100000,
+    "final_capital": 141725.33,
+    "total_return_pct": 41.73,
+    "annualized_return_pct": 7.24,
+    "sharpe_ratio": 0.456,
+    "max_drawdown_pct": -23.05,
+    "num_trades": 16,
+    "win_rate": 0.75,
+    "avg_trade_return": 2.69,
+    "trades": [
+      {
+        "entry_date": "2022-01-19",
+        "exit_date": "2022-03-24",
+        "entry_price": 162.37,
+        "exit_price": 170.25,
+        "shares": 585,
+        "pnl": 4606.68,
+        "return_pct": 4.85
+      },
+      {
+        "entry_date": "2022-04-22",
+        "exit_date": "2022-07-08",
+        "entry_price": 158.24,
+        "exit_price": 144.02,
+        "shares": 626,
+        "pnl": -8898.45,
+        "return_pct": -8.98
+      },
+      {
+        "entry_date": "2022-08-30",
+        "exit_date": "2022-10-25",
+        "entry_price": 155.86,
+        "exit_price": 149.42,
+        "shares": 581,
+        "pnl": -3744.02,
+        "return_pct": -4.13
+      },
+      {
+        "entry_date": "2022-12-15",
+        "exit_date": "2023-01-23",
+        "entry_price": 134.11,
+        "exit_price": 138.64,
+        "shares": 647,
+        "pnl": 2930.38,
+        "return_pct": 3.38
+      },
+      {
+        "entry_date": "2023-08-04",
+        "exit_date": "2023-08-30",
+        "entry_price": 179.32,
+        "exit_price": 185.15,
+        "shares": 498,
+        "pnl": 2901.63,
+        "return_pct": 3.25
+      },
+      {
+        "entry_date": "2023-10-26",
+        "exit_date": "2023-11-10",
+        "entry_price": 164.66,
+        "exit_price": 184.15,
+        "shares": 558,
+        "pnl": 10876.5,
+        "return_pct": 11.84
+      },
+      {
+        "entry_date": "2024-01-02",
+        "exit_date": "2024-05-03",
+        "entry_price": 183.4,
+        "exit_price": 181.4,
+        "shares": 557,
+        "pnl": -1114.88,
+        "return_pct": -1.09
+      },
+      {
+        "entry_date": "2024-08-05",
+        "exit_date": "2024-09-30",
+        "entry_price": 207.29,
+        "exit_price": 231.07,
+        "shares": 486,
+        "pnl": 11553.71,
+        "return_pct": 11.47
+      },
+      {
+        "entry_date": "2024-11-01",
+        "exit_date": "2024-11-25",
+        "entry_price": 221.06,
+        "exit_price": 231.19,
+        "shares": 505,
+        "pnl": 5116.37,
+        "return_pct": 4.58
+      },
+      {
+        "entry_date": "2025-01-10",
+        "exit_date": "2025-02-13",
+        "entry_price": 235.14,
+        "exit_price": 240.05,
+        "shares": 494,
+        "pnl": 2425.5,
+        "return_pct": 2.09
+      },
+      {
+        "entry_date": "2025-03-10",
+        "exit_date": "2025-07-01",
+        "entry_price": 226.09,
+        "exit_price": 206.82,
+        "shares": 523,
+        "pnl": -10077.65,
+        "return_pct": -8.52
+      },
+      {
+        "entry_date": "2025-07-31",
+        "exit_date": "2025-08-07",
+        "entry_price": 206.57,
+        "exit_price": 218.97,
+        "shares": 525,
+        "pnl": 6510.02,
+        "return_pct": 6.0
+      },
+      {
+        "entry_date": "2026-01-05",
+        "exit_date": "2026-02-02",
+        "entry_price": 266.53,
+        "exit_price": 269.28,
+        "shares": 430,
+        "pnl": 1179.28,
+        "return_pct": 1.03
+      },
+      {
+        "entry_date": "2026-03-13",
+        "exit_date": "2026-04-09",
+        "entry_price": 249.67,
+        "exit_price": 260.03,
+        "shares": 462,
+        "pnl": 4782.39,
+        "return_pct": 4.15
+      },
+      {
+        "entry_date": "2026-06-09",
+        "exit_date": "2026-07-06",
+        "entry_price": 290.3,
+        "exit_price": 312.39,
+        "shares": 412,
+        "pnl": 9101.48,
+        "return_pct": 7.61
+      },
+      {
+        "entry_date": "2026-08-03",
+        "exit_date": "2026-08-28",
+        "entry_price": 303.16,
+        "exit_price": 319.7,
+        "shares": 423,
+        "pnl": 6997.03,
+        "return_pct": 5.46
+      }
+    ]
+  },
+  "MA Crossover (50/200)": {
+    "ticker": "AAPL",
+    "period": "2021-10-18 to 2026-10-15",
+    "initial_capital": 100000,
+    "final_capital": 124389.45,
+    "total_return_pct": 24.39,
+    "annualized_return_pct": 4.47,
+    "sharpe_ratio": 0.34,
+    "max_drawdown_pct": -28.77,
+    "num_trades": 4,
+    "win_rate": 0.5,
+    "avg_trade_return": 8.28,
+    "trades": [
+      {
+        "entry_date": "2022-09-26",
+        "exit_date": "2022-10-07",
+        "entry_price": 147.88,
+        "exit_price": 137.41,
+        "shares": 642,
+        "pnl": -6725.2,
+        "return_pct": -7.08
+      },
+      {
+        "entry_date": "2023-03-22",
+        "exit_date": "2024-03-14",
+        "entry_price": 155.3,
+        "exit_price": 171.13,
+        "shares": 569,
+        "pnl": 9010.3,
+        "return_pct": 10.2
+      },
+      {
+        "entry_date": "2024-06-13",
+        "exit_date": "2025-04-07",
+        "entry_price": 212.22,
+        "exit_price": 180.35,
+        "shares": 456,
+        "pnl": -14531.05,
+        "return_pct": -15.02
+      },
+      {
+        "entry_date": "2025-09-15",
+        "exit_date": "2026-10-15",
+        "entry_price": 235.83,
+        "exit_price": 342.0,
+        "shares": 351,
+        "pnl": 37266.08,
+        "return_pct": 45.02
+      }
+    ]
+  }
+}

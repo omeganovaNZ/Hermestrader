@@ -1,0 +1,50 @@
+{
+  "XOM": {
+    "name": "Exxon Mobil",
+    "config": "US_TECH",
+    "market_aware": {
+      "total_return": 27.27,
+      "sharpe": 0.387,
+      "max_dd": -27.04,
+      "num_trades": 28,
+      "win_rate": 0.5357
+    },
+    "buy_and_hold": {
+      "total_return": 232.71,
+      "sharpe": 1.044,
+      "max_dd": -20.51
+    }
+  },
+  "CVX": {
+    "name": "Chevron",
+    "config": "US_TECH",
+    "market_aware": {
+      "total_return": 19.06,
+      "sharpe": 0.314,
+      "max_dd": -30.45,
+      "num_trades": 27,
+      "win_rate": 0.5556
+    },
+    "buy_and_hold": {
+      "total_return": 144.61,
+      "sharpe": 0.841,
+      "max_dd": -24.95
+    }
+  },
+  "NEE": {
+    "name": "NextEra Energy",
+    "config": "US_TECH",
+    "market_aware": {
+      "total_return": -9.58,
+      "sharpe": -0.058,
+      "max_dd": -34.4,
+      "num_trades": 27,
+      "win_rate": 0.4815
+    },
+    "buy_and_hold": {
+      "total_return": 11.52,
+      "sharpe": 0.216,
+      "max_dd": -44.97
+    }
+  }
+}

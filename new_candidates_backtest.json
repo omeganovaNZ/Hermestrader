@@ -1,0 +1,112 @@
+{
+  "CRWD": {
+    "name": "CrowdStrike",
+    "config": "US_TECH",
+    "market_aware_return": 148.23,
+    "market_aware_sharpe": 0.765,
+    "market_aware_max_dd": -46.87,
+    "bh_return": 242.84,
+    "bh_sharpe": 0.733,
+    "bh_max_dd": -67.69
+  },
+  "LLY": {
+    "name": "Eli Lilly",
+    "config": "US_TECH",
+    "market_aware_return": 117.79,
+    "market_aware_sharpe": 0.852,
+    "market_aware_max_dd": -31.85,
+    "bh_return": 448.05,
+    "bh_sharpe": 1.207,
+    "bh_max_dd": -34.48
+  },
+  "MA": {
+    "name": "Mastercard",
+    "config": "US_TECH",
+    "market_aware_return": 8.07,
+    "market_aware_sharpe": 0.184,
+    "market_aware_max_dd": -19.29,
+    "bh_return": 77.15,
+    "bh_sharpe": 0.602,
+    "bh_max_dd": -28.25
+  },
+  "CAT": {
+    "name": "Caterpillar",
+    "config": "US_TECH",
+    "market_aware_return": 93.7,
+    "market_aware_sharpe": 0.814,
+    "market_aware_max_dd": -20.62,
+    "bh_return": 304.53,
+    "bh_sharpe": 1.04,
+    "bh_max_dd": -34.05
+  },
+  "GEV": {
+    "name": "GE Vernova",
+    "config": "US_TECH",
+    "market_aware_return": 163.75,
+    "market_aware_sharpe": 1.392,
+    "market_aware_max_dd": -23.45,
+    "bh_return": 608.84,
+    "bh_sharpe": 1.724,
+    "bh_max_dd": -38.29
+  },
+  "PANW": {
+    "name": "Palo Alto Networks",
+    "config": "US_TECH",
+    "market_aware_return": 55.92,
+    "market_aware_sharpe": 0.491,
+    "market_aware_max_dd": -30.49,
+    "bh_return": 331.24,
+    "bh_sharpe": 0.899,
+    "bh_max_dd": -36.01
+  },
+  "RTX": {
+    "name": "RTX Corp",
+    "config": "US_TECH",
+    "market_aware_return": 33.1,
+    "market_aware_sharpe": 0.505,
+    "market_aware_max_dd": -16.56,
+    "bh_return": 129.23,
+    "bh_sharpe": 0.808,
+    "bh_max_dd": -32.84
+  },
+  "PK": {
+    "name": "Park Hotels",
+    "config": "US_TECH",
+    "market_aware_return": 69.24,
+    "market_aware_sharpe": 0.666,
+    "market_aware_max_dd": -33.2,
+    "bh_return": 22.33,
+    "bh_sharpe": 0.293,
+    "bh_max_dd": -47.38
+  },
+  "BE": {
+    "name": "Bloom Energy",
+    "config": "US_TECH",
+    "market_aware_return": 1359.09,
+    "market_aware_sharpe": 1.24,
+    "market_aware_max_dd": -54.59,
+    "bh_return": 1010.95,
+    "bh_sharpe": 0.97,
+    "bh_max_dd": -75.87
+  },
+  "XYZ": {
+    "name": "Block Inc",
+    "config": "US_TECH",
+    "market_aware_return": -28.3,
+    "market_aware_sharpe": -0.099,
+    "market_aware_max_dd": -59.56,
+    "bh_return": -68.35,
+    "bh_sharpe": -0.087,
+    "bh_max_dd": -85.2
+  },
+  "HD": {
+    "name": "Home Depot",
+    "config": "US_TECH",
+    "market_aware_return": 6.47,
+    "market_aware_sharpe": 0.166,
+    "market_aware_max_dd": -20.31,
+    "bh_return": -1.44,
+    "bh_sharpe": 0.112,
+    "bh_max_dd": -34.73
+  }
+}

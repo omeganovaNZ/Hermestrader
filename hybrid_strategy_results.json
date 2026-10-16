@@ -1,0 +1,170 @@
+{
+  "RKLB": {
+    "name": "Rocket Lab",
+    "hybrid": {
+      "total_return": 273.06,
+      "ann_return": 30.18,
+      "sharpe": 0.723,
+      "max_dd": -63.9,
+      "num_trades": 23,
+      "win_rate": 0.5652,
+      "avg_trade_return": 21.57
+    },
+    "mean_reversion": {
+      "total_return": -57.21,
+      "sharpe": -0.174,
+      "max_dd": -76.39,
+      "num_trades": 14,
+      "win_rate": 0.5
+    },
+    "buy_and_hold": {
+      "total_return": 345.56,
+      "sharpe": 0.767,
+      "max_dd": -78.32
+    }
+  },
+  "NVDA": {
+    "name": "NVIDIA",
+    "hybrid": {
+      "total_return": 559.41,
+      "ann_return": 45.92,
+      "sharpe": 1.075,
+      "max_dd": -55.8,
+      "num_trades": 31,
+      "win_rate": 0.6774,
+      "avg_trade_return": 8.38
+    },
+    "mean_reversion": {
+      "total_return": 236.12,
+      "sharpe": 0.904,
+      "max_dd": -38.49,
+      "num_trades": 18,
+      "win_rate": 0.7778
+    },
+    "buy_and_hold": {
+      "total_return": 881.85,
+      "sharpe": 1.142,
+      "max_dd": -66.34
+    }
+  },
+  "MU": {
+    "name": "Micron",
+    "hybrid": {
+      "total_return": 1865.18,
+      "ann_return": 81.61,
+      "sharpe": 1.516,
+      "max_dd": -41.64,
+      "num_trades": 28,
+      "win_rate": 0.5357,
+      "avg_trade_return": 18.32
+    },
+    "mean_reversion": {
+      "total_return": 714.04,
+      "sharpe": 1.497,
+      "max_dd": -26.51,
+      "num_trades": 20,
+      "win_rate": 0.75
+    },
+    "buy_and_hold": {
+      "total_return": 1318.08,
+      "sharpe": 1.219,
+      "max_dd": -57.63
+    }
+  },
+  "AMD": {
+    "name": "AMD",
+    "hybrid": {
+      "total_return": 55.94,
+      "ann_return": 9.31,
+      "sharpe": 0.423,
+      "max_dd": -63.93,
+      "num_trades": 29,
+      "win_rate": 0.4828,
+      "avg_trade_return": 3.7
+    },
+    "mean_reversion": {
+      "total_return": 8.13,
+      "sharpe": 0.226,
+      "max_dd": -56.08,
+      "num_trades": 17,
+      "win_rate": 0.7059
+    },
+    "buy_and_hold": {
+      "total_return": 382.89,
+      "sharpe": 0.835,
+      "max_dd": -65.45
+    }
+  },
+  "INTC": {
+    "name": "Intel",
+    "hybrid": {
+      "total_return": 62.27,
+      "ann_return": 10.18,
+      "sharpe": 0.44,
+      "max_dd": -71.3,
+      "num_trades": 32,
+      "win_rate": 0.5,
+      "avg_trade_return": 3.74
+    },
+    "mean_reversion": {
+      "total_return": 210.26,
+      "sharpe": 0.876,
+      "max_dd": -46.96,
+      "num_trades": 21,
+      "win_rate": 0.7143
+    },
+    "buy_and_hold": {
+      "total_return": 90.09,
+      "sharpe": 0.508,
+      "max_dd": -65.04
+    }
+  },
+  "005930.KS": {
+    "name": "Samsung",
+    "hybrid": {
+      "total_return": -35.81,
+      "ann_return": -8.49,
+      "sharpe": -0.555,
+      "max_dd": -42.6,
+      "num_trades": 23,
+      "win_rate": 0.5217,
+      "avg_trade_return": -1.79
+    },
+    "mean_reversion": {
+      "total_return": -4.15,
+      "sharpe": -0.024,
+      "max_dd": -27.18,
+      "num_trades": 9,
+      "win_rate": 0.7778
+    },
+    "buy_and_hold": {
+      "total_return": 237.71,
+      "sharpe": 0.806,
+      "max_dd": -42.85
+    }
+  },
+  "GOOGL": {
+    "name": "Alphabet/Google",
+    "hybrid": {
+      "total_return": 44.63,
+      "ann_return": 7.67,
+      "sharpe": 0.415,
+      "max_dd": -43.67,
+      "num_trades": 31,
+      "win_rate": 0.6452,
+      "avg_trade_return": 1.94
+    },
+    "mean_reversion": {
+      "total_return": 34.69,
+      "sharpe": 0.379,
+      "max_dd": -23.87,
+      "num_trades": 14,
+      "win_rate": 0.5714
+    },
+    "buy_and_hold": {
+      "total_return": 146.92,
+      "sharpe": 0.726,
+      "max_dd": -44.32
+    }
+  }
+}
