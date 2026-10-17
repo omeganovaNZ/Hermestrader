@@ -82,6 +82,90 @@ legitimate successive rungs.
 `order_status` and marks a trim `FILLED` only when Alpaca says so. An earlier version logged
 every trim as sold — including two LLY trims that never filled.
 
+---
+
+### Cross-validation of the trim ladder (2026-10-17)
+
+Tested on 20 names over one uniform window, every strategy **armed at the same price on the
+same day** — for the 10 highest-growth stocks, entered at the 2025-10-15 close; for the
+Sharesies holdings, at the first close that reached each one's own cost basis. $1,000
+notional per name. Entry price, not calendar date, is what makes the comparison fair.
+
+**Panel A — the 10 highest-growth stocks** (AXTI, SNDK, MRNA, IOVA, TXG, KOD, LITE, MU, MXL,
+VICR; +234% to +1021% over the window):
+
+| strategy | median | mean | worst | best | beats HOLD |
+|---|---|---|---|---|---|
+| HOLD | 5.819 | 6.309 | 3.341 | 11.214 | 0% |
+| LADDER | 4.049 | 4.212 | 3.307 | 5.999 | 0% |
+| ADAPT-1.20 | 4.110 | 4.396 | 3.342 | 6.162 | 10% |
+| TREND (gate +100%) | 4.595 | 5.120 | 3.406 | 9.324 | 20% |
+| TRAIL-20% | 3.498 | 4.290 | 2.783 | 9.248 | 10% |
+
+**Panel B — the Sharesies holdings** (10 usable; CO2/GFI/USH skipped — price never reached
+their inferred basis):
+
+| strategy | median | mean | worst | best | beats HOLD |
+|---|---|---|---|---|---|
+| HOLD | 1.000 | 1.101 | 0.598 | 1.998 | 0% |
+| LADDER | 1.100 | 1.261 | 0.707 | 2.477 | 60% |
+| ADAPT-1.20 | 1.077 | 1.255 | 0.707 | 2.499 | 50% |
+| TREND (gate +100%) | 1.044 | 1.206 | 0.598 | 2.820 | 20% |
+| TRAIL-20% | 1.074 | 1.197 | 0.835 | 2.328 | 60% |
+
+**What the evidence supports**
+
+1. **Nothing beat holding on the highest-growth stocks.** Holding turned $1,000 into a median
+   $5,819. Every active strategy gave up a fifth to a third of that. Caveat: this panel is
+   survivorship-biased *by construction* — those names were selected for having the highest
+   gains, so holding is structurally guaranteed to win. It prices the cost of trimming in the
+   best case for holding; it cannot validate or invalidate trimming.
+2. **On the actual holdings the original ladder is the strongest mechanism tested** — it beat
+   holding on 6 of 10, including three names that fell (DTIL -20% became 1.115, RGTI -3% became
+   1.586, DXYZ -40% became 0.707). The low rung is what lets it sell into a rally; that is the
+   mechanism working, not a bug.
+3. **The rung is a regime parameter.** Performance on Panel A rises monotonically as the rung
+   is raised; on Panel B it falls monotonically. Opposite directions is the strongest evidence
+   there is that no single fixed setting is correct.
+4. **Trailing stops are dominated.** Worst on the winners by a wide margin. Do not add one.
+5. **The "gate" is the essential ingredient.** A trend rule without the "after a long gain"
+   condition liquidated positions early and lost $501 on the growth names.
+
+**The adaptive gate (ADOPTED):** the ladder's first trim is skipped when the move is already
+parabolic. When the price first reaches +50% of the ladder base, compute
+`extension = close / 50-day SMA`; if `extension >= 1.20` skip the 10% trim and let it run,
+otherwise take it as normal. Only the first rung is gated.
+
+- It is the **first variant that improved Panel A without damaging Panel B**: +0.184 mean on
+  the growth names, -0.006 on the holdings (noise).
+- **The threshold is not knife-edge** — 1.10 / 1.20 / 1.30 land within 0.025 of each other.
+- It beats the ladder on 10 of 10 growth stocks.
+- It is a modest improvement (+4.4% Panel A, -0.5% Panel B), not a breakthrough, and it does
+  not beat holding on the growth names.
+
+**A recommendation that was tested and REFUTED.** Raising the first rung outright to +100%
+(LADDER-100) was proposed and then tested. It gained more on Panel A (+0.596) but cost -0.074
+on Panel B, and cut "beats HOLD" on the holdings from 60% to 30%. On the evidence the change
+was **rejected** — it would have made the actual book worse. Recorded here so the reasoning is
+on record rather than silently dropped.
+
+**Bugs found during this work** (all fixed; each would have produced confident, wrong output):
+
+- The first two cross-validation runs discarded every sale's cash proceeds, reporting only the
+  remaining share count — making successful strategies look like failures.
+- `trail()` credited cash for 80% of the position while removing only 20%, a 4x over-credit that
+  made a sell-only strategy appear to amplify VICR 13-fold. (It actually peaked at $379.78 and
+  fell back to $191.50, so a trailing stop did well there — 3.59x, not 13.29x.)
+- `gain_loss == -100.0` in `sharesies_portfolio_analysis.json` zeroes the cost-basis
+  denominator; that holding is now skipped rather than crashing the run.
+
+**Standing caveats.** The Sharesies cost basis is *inferred* (read from `gain_loss` as a
+percentage — AIR and BAP are the discriminator) and unconfirmed against the Sharesies site. The
+yfinance closes do not reproduce the documented headline prices for every name (AXTI $51.47 vs
+a documented $84.83), so absolute gains won't match the source document — the *comparison*
+between strategies is unaffected since all use the same data. One 12-month window, and Panel B
+is effectively decided by five names.
+
 **Fractional positions are handled.** `get_positions()` returns `qty` as a float; it used to
 cast to `int`, which would truncate a fractional position (5.6 shares -> 5) and corrupt
 every downstream calculation.
