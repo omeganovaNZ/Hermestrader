@@ -101,7 +101,13 @@ class AlpacaTrader:
         
         # Risk tolerance: Higher risk OK, but require multiple confirming signals
         self.min_confirming_signals = 3  # Need 3+ signals to enter
-        self.max_position_pct = 0.20     # Up to 20% per position (higher risk tolerance)
+        # Cap on a NEW position's share of account value. Kept BELOW the trim cap
+        # (position_manager.max_position_pct = 0.10) so a position is never born over-cap
+        # and has room to rise before the cap binds. This attribute used to be dead: it said
+        # 0.20 while calculate_position_size hardcoded 0.15 and the trimmer enforced 0.10 -
+        # three different caps, none of them agreeing, which is how four positions ended up
+        # over-cap on the day they were bought.
+        self.max_position_pct = 0.08
         self.risk_per_trade = 0.03       # 3% risk per trade (higher than default 2%)
     
     def connect(self):
@@ -264,24 +270,37 @@ class AlpacaTrader:
         }
     
     def calculate_position_size(self, symbol, signal, account_value, risk_pct=0.02):
-        """Calculate position size based on risk management rules."""
+        """Size a new position, capped BELOW the trim cap so it is never born over-cap.
+
+        The cap here used to be a hardcoded 0.15 while the trimmer enforced 0.10, so any
+        position sized between 10% and 15% was over-cap the moment it was bought - and
+        because the cap trim only ever sells WINNERS, an over-cap position that then went
+        down could never be corrected. MRVL (23% of equity and falling), MU, RKLB and DDOG
+        all arrived that way, and all four cap-trim orders had to be cancelled rather than
+        sold at a loss.
+
+        The cap is now `self.max_position_pct`, deliberately set BELOW the trim cap so a
+        position has room to rise before the cap binds. Sizing exactly AT the trim cap would
+        mean trimming on the first good day.
+        """
         quote = self.get_quote(symbol)
         if quote is None:
             return 0
-        
+
         price = float(quote.ask_price) if hasattr(quote, 'ask_price') else float(quote)
-        
-        # Risk-based position sizing
+        if price <= 0:
+            return 0
+
+        # Risk-based sizing: risking risk_pct of the account against a 10% stop.
         risk_amount = account_value * risk_pct
-        # Assume 2x ATR stop loss (simplified)
-        stop_distance = price * 0.10  # 10% stop
+        stop_distance = price * 0.10
         shares = int(risk_amount / stop_distance)
-        
-        # Cap at max position size
-        max_position = account_value * 0.15  # 15% max per position
+
+        # Cap at the configured position size (below the trim cap).
+        max_position = account_value * float(self.max_position_pct)
         max_shares = int(max_position / price)
         shares = min(shares, max_shares)
-        
+
         return shares, price
     
     def place_buy_order(self, symbol, shares, price=None):

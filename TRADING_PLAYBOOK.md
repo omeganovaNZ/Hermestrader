@@ -214,6 +214,67 @@ and is pulling back while still above its 200-day average.
 Pinned by `test_profit_trim.py` (11 tests: each of the four conditions broken individually, the
 re-base behaviour, and the down-day counter).
 
+### Entry sizing (aligned 2026-10-17)
+
+Three different position caps existed and none of them agreed: `alpaca_trader.max_position_pct`
+said **0.20 but was never read**, `calculate_position_size` hardcoded **0.15**, and the trimmer
+enforced **0.10**. Any position sized between 10% and 15% was therefore over-cap from the moment
+it was bought — and because the cap trim only ever sells WINNERS, an over-cap position that then
+fell could not be corrected by anything. MRVL (23.2% of equity, down 3.2%), MU (13.7%), RKLB
+(13.6%) and DDOG (11.5%) all arrived that way, which is why all four cap-trim orders had to be
+cancelled rather than sold at a loss.
+
+Now: **entry cap 8%, deliberately below the 10% trim cap**, and the attribute that was dead is
+the one that is read. Below the cap on purpose — sizing exactly AT the cap means the first good
+day makes the position over-cap and triggers a trim. Pinned by `test_position_sizing.py`
+(6 tests), which includes the cross-module invariant `entry cap < trim cap`.
+
+Note the risk-based term is now inert: risking 2% against a 10% stop implies a 20% position,
+which the 8% cap always overrides. Effective risk per new position is 8% x 10% = **0.8% of the
+account**.
+
+### Restoring the ladder's rungs — TESTED AND REFUTED (2026-10-17)
+
+The ladder was replaced by the profit-trim rule above, and the open question was whether its
+levels should be restored in combination with the new pullback trigger. The harness was rebuilt
+and **validated against the documented Panel A numbers** (HOLD median 5.819 vs 5.819 documented;
+LADDER 4.046 vs 4.049), so that panel is trustworthy.
+
+Panel A — the 10 highest-growth names, per $1,000 notional, 0.1% commission per trade:
+
+| strategy | median | mean | worst | beats HOLD |
+|---|---|---|---|---|
+| HOLD | 5.819 | 6.309 | 3.341 | 0% |
+| LADDER (the old ladder) | 4.046 | 4.209 | 3.305 | 0% |
+| USER (the rule, no min hold) | 5.211 | 5.684 | 3.556 | 20% |
+| **USER + 6-month hold** | **5.307** | **6.029** | 3.552 | **40%** |
+| SYNTH (rungs + pullback trigger) | 4.347 | 4.760 | 3.110 | 10% |
+| SYNTH + 6-month hold | 4.679 | 5.708 | 3.655 | 40% |
+| SYNTH + parabolic gate + hold | 4.723 | 5.757 | 3.655 | 40% |
+
+1. **The pullback trigger is a large improvement over firing into strength.** LADDER mean 4.209
+   -> USER+hold 6.029, **+43%**. The ladder's +50% rung sold into vertical moves; waiting for a
+   2-day dip does not. This is the single clearest result of the exercise.
+2. **The 6-month hold helps consistently on growth names** (5.684 -> 6.029, and beats-HOLD
+   20% -> 40%). The user's instinct is supported by the data.
+3. **Restoring the rungs does NOT help, even gated.** SYNTH+hold 5.708 and SYNTH+gate+hold
+   5.757 both trail USER+hold 6.029. The +50% rung is still too eager. The only thing the rungs
+   buy is a marginally better worst case (3.655 vs 3.552, about +2.9% on the single worst name)
+   against a lower mean on the best names. Not worth the complexity — **the rungs were not
+   restored.**
+4. **The "still above the 200-day average" condition is INERT.** Variants with and without it
+   produced identical results on all 23 names, because a position up +50% or +100% is
+   essentially always above a 200-day average. It costs nothing and does nothing.
+5. **Panel B did not reproduce** (HOLD median 0.754 vs the documented 1.000), so its numbers
+   are indicative only and no decision rests on them. Directionally it repeats the earlier
+   finding that early harvesting helps flat/down names and that the 6-month hold hurts them.
+
+Two harness bugs were found and fixed while doing this, both of which produced confident wrong
+output: `a is True` is always False for a numpy comparison (which silently disabled every
+pullback variant, leaving them identical to HOLD), and slicing Panel A's series to start at the
+entry date destroyed the 200-day warm-up, blocking the pullback variants for their first 199
+bars while LADDER could act from bar 1.
+
 **A recommendation that was tested and REFUTED.** Raising the first rung outright to +100%
 (LADDER-100) was proposed and then tested. It gained more on Panel A (+0.596) but cost -0.074
 on Panel B, and cut "beats HOLD" on the holdings from 60% to 30%. On the evidence the change
