@@ -8,8 +8,8 @@ import sys
 import json
 import numpy as np
 import pandas as pd
-from datetime import datetime, timedelta
-from typing import List, Dict, Optional, Tuple
+from datetime import datetime
+from typing import Dict, Optional, Tuple
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from alpaca_trader import AlpacaTrader
@@ -289,7 +289,7 @@ class EnsembleTrader:
             'volatility': 0.10,   # Low vol preference
         }
     
-    def generate_ensemble_signal(self, symbol: str, config_name: str) -> Dict:
+    def generate_ensemble_signal(self, symbol: str, config_name: str, name: str = None) -> Dict:
         """Generate ensemble signal combining all methods."""
         
         signals = {}
@@ -325,13 +325,14 @@ class EnsembleTrader:
         signals['ml_available'] = ml_prob is not None
         
         # 3. Sentiment
-        sentiment = self.sentiment_filter.get_sentiment(symbol, symbol)
+        sentiment = self.sentiment_filter.get_sentiment(symbol, name or symbol)
         signals['sentiment_score'] = sentiment['score']
         signals['sentiment'] = sentiment['sentiment']
         signals['sentiment_available'] = sentiment.get('available', False)
         signals['sentiment_source'] = sentiment.get('source', 'unknown')
         
         # 4. Momentum (12-month return)
+        signals['momentum_available'] = False
         try:
             data = fetch_data(symbol, "1y")
             if data is not None and len(data) > 0:
@@ -339,20 +340,25 @@ class EnsembleTrader:
                 if first_close > 0 and first_close == first_close:  # not NaN
                     momentum = (data['Close'].iloc[-1] / first_close) - 1
                     signals['momentum'] = momentum
+                    signals['momentum_available'] = True
                 else:
                     signals['momentum'] = 0
             else:
                 signals['momentum'] = 0
         except:
             signals['momentum'] = 0
-        
+
         # 5. Volatility
         try:
             data = fetch_data(symbol, "6mo")
             if data is not None and len(data) > 20:
                 daily_returns = data['Close'].pct_change().dropna()
                 vol = daily_returns.std() * np.sqrt(252)
-                signals['volatility'] = vol
+                # Guard against NaN (empty daily_returns after dropna)
+                if vol == vol and vol > 0:  # not NaN and positive
+                    signals['volatility'] = vol
+                else:
+                    signals['volatility'] = 0.25  # fallback: neutral (maps to vol_score=0)
             else:
                 signals['volatility'] = 0.25  # fallback: neutral (maps to vol_score=0)
         except:
@@ -396,7 +402,7 @@ class EnsembleTrader:
             'technical': signals['technical'] != 0,
             'ml_prediction': signals.get('ml_available', False),
             'sentiment': signals.get('sentiment_available', False),
-            'momentum': True,        # always measurable
+            'momentum': signals.get('momentum_available', False),
             'volatility': not _vol_is_fallback,
         }
         signals['layers_used'] = sorted(layer for layer, ok in _live.items() if ok)
@@ -451,7 +457,7 @@ class EnsembleTrader:
         results = []
         for ticker, name, config_name in self.alpaca.watchlist:
             try:
-                signals = self.generate_ensemble_signal(ticker, config_name)
+                signals = self.generate_ensemble_signal(ticker, config_name, name)
                 signals['ticker'] = ticker
                 signals['name'] = name
                 results.append(signals)

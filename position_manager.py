@@ -41,10 +41,8 @@ and the scan only reports candidates.
 import os
 import sys
 import json
-import numpy as np
-import pandas as pd
-from datetime import datetime, timedelta
-from typing import List, Dict, Optional, Tuple
+from datetime import datetime
+from typing import Dict, List, Optional
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from alpaca_trader import AlpacaTrader

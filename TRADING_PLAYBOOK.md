@@ -368,6 +368,28 @@ Going forward the scan keeps collecting data, and any proposed change runs throu
 gate before it touches live orders. This is the mechanism by which the strategy is expected to
 get better and more robust over time rather than being set once and left to rot.
 
+### Pattern-matching against historical setups — a standing footnote
+
+When a stock in the portfolio (or on the watchlist) shows a technical setup that resembles a
+known historical setup — e.g. MRVL's Oct 2024 bullish breakout (RSI ~72, ADX ~31, +15% above
+200DMA) — use that resemblance as a **flag to investigate, not a signal to buy**. The process:
+
+1. **Identify the reference setup.** What did the stock's technical profile look like at a
+   comparable point in a prior cycle? (Use `two_year_comparison.py` or equivalent.)
+2. **Find current matches.** Screen the universe for stocks showing the same profile today.
+3. **Demand fundamental evidence before any entry.** A matching chart pattern is not enough.
+   For each candidate, verify: What is the industry? What is the balance sheet (debt, liquid
+   cash, runway)? What structural tailwind or catalyst supports the setup? Is the valuation
+   extreme relative to peers? Only if the fundamentals corroborate the pattern does the stock
+   become an entry candidate.
+4. **Size accordingly.** A pattern-match entry is a satellite position (3-5%), not a core
+   hold. It is a hypothesis informed by history, not a certainty.
+
+This is a **back-of-mind discipline**, not a screener replacement. It surfaces candidates that
+the hand-picked universe would miss, but every candidate must still pass the existing gates:
+theme cap, entry cap, multiple confirming signals, and the thesis review. The pattern match is
+the spark; the fundamentals are the fuel.
+
 **Fractional positions are handled.** `get_positions()` returns `qty` as a float; it used to
 cast to `int`, which would truncate a fractional position (5.6 shares -> 5) and corrupt
 every downstream calculation.

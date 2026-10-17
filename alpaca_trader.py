@@ -7,14 +7,12 @@ Reads credentials from alpaca_config.txt — never hardcodes secrets.
 import os
 import sys
 import json
-import time
 import pandas as pd
-import numpy as np
 from datetime import datetime, timedelta
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from trading_strategy_engine import BacktestEngine, MeanReversionStrategy, fetch_data
+
 from market_aware_strategy import MarketAwareHybridStrategy, MARKET_CONFIGS
 from portfolio_rules import theme_cap_check_safe
 
@@ -97,8 +95,12 @@ class AlpacaTrader:
         self.trades_log_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "alpaca_trades_log.json")
         self.trades_log = []
         if os.path.exists(self.trades_log_path):
-            with open(self.trades_log_path, 'r') as f:
-                self.trades_log = json.load(f)
+            try:
+                with open(self.trades_log_path, 'r') as f:
+                    self.trades_log = json.load(f)
+            except (ValueError, OSError):
+                print("  WARNING: alpaca_trades_log.json unreadable - starting fresh")
+                self.trades_log = []
         
         # Risk tolerance: Higher risk OK, but require multiple confirming signals.
         # NOTE: this is NOT currently enforced — the buy path uses a single signal
@@ -241,13 +243,16 @@ class AlpacaTrader:
         return df
     
     def get_quote(self, symbol):
-        """Get current quote for a symbol."""
+        """Get current quote for a stock."""
         from alpaca.data.requests import StockLatestQuoteRequest
         request = StockLatestQuoteRequest(symbol_or_symbols=symbol)
         quote = self.data_client.get_stock_latest_quote(request)
         
         if hasattr(quote, 'get'):
-            return quote.get(symbol, quote)
+            result = quote.get(symbol, quote)
+            if result is None:
+                return None
+            return result
         return quote
     
     def generate_signals(self, symbol, config_name):
@@ -297,7 +302,7 @@ class AlpacaTrader:
             return 0, 0
 
         price = float(quote.ask_price) if hasattr(quote, 'ask_price') else float(quote)
-        if price <= 0:
+        if not (price > 0) or price != price:  # NaN-safe: NaN > 0 is False
             return 0, 0
 
         # Risk-based sizing: risking risk_pct of the account against a 10% stop.
@@ -364,8 +369,17 @@ class AlpacaTrader:
         print(f"  Date: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
         print("=" * 80)
         
-        account = self.get_account()
-        positions = self.get_positions()
+        try:
+            account = self.get_account()
+        except Exception as e:
+            print(f"  ERROR fetching account: {e}")
+            return []
+
+        try:
+            positions = self.get_positions()
+        except Exception as e:
+            print(f"  ERROR fetching positions: {e}")
+            return []
         
         print(f"\n  Account Status: {account['status']}")
         print(f"  Cash: ${account['cash']:,.2f}")
@@ -432,8 +446,11 @@ class AlpacaTrader:
                         # cannot be evaluated. A risk limit that opens up whenever it fails
                         # is not a limit. It sits outside the order try/except below, so a
                         # failure here cannot be mistaken for a broker rejection.
-                        ok, why = theme_cap_check_safe(
-                            symbol, shares * price, positions, float(account['equity']))
+                        try:
+                            ok, why = theme_cap_check_safe(
+                                symbol, shares * price, positions, float(account['equity']))
+                        except Exception as e:
+                            ok, why = False, f"theme cap check crashed: {type(e).__name__}: {e}"
                         if not ok:
                             print(f"  BUY {symbol}: BLOCKED by the theme cap - {why}")
                             continue
@@ -473,10 +490,22 @@ class AlpacaTrader:
                     if pl <= 0:
                         print(f"  SELL {symbol}: BLOCKED - position is down {pl:,.2f} - not selling a loser")
                         continue
+                    # Check for pending sell orders to avoid duplicates
+                    try:
+                        pending_sells = {o['symbol'] for o in self.get_open_orders()
+                                         if str(o.get('side', '')).lower() == 'sell'}
+                        if symbol in pending_sells:
+                            print(f"  SELL {symbol}: Skipped (sell order already pending)")
+                            continue
+                    except Exception:
+                        pass
                     try:
                         self.place_sell_order(symbol, existing_position['qty'])
                         print(f"  SELL {symbol}: {existing_position['qty']} shares")
                         trades_executed += 1
+                        # Remove from positions list so a later signal for the same symbol
+                        # in this scan is not incorrectly skipped
+                        positions = [p for p in positions if p['symbol'] != symbol]
                         self.trades_log.append({
                             'date': datetime.now().isoformat(),
                             'action': 'SELL',
@@ -494,8 +523,13 @@ class AlpacaTrader:
             print("  No trades executed.")
         
         # Save trades log
-        with open(self.trades_log_path, 'w') as f:
-            json.dump(self.trades_log, f, indent=2)
+        try:
+            _tmp = self.trades_log_path + '.tmp'
+            with open(_tmp, 'w') as f:
+                json.dump(self.trades_log, f, indent=2)
+            os.replace(_tmp, self.trades_log_path)
+        except Exception as e:
+            print(f"  WARNING: could not save trades log - {e}")
         
         print(f"\n  Trades executed: {trades_executed}")
         print(f"  Total trades in log: {len(self.trades_log)}")

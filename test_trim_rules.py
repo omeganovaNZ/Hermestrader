@@ -25,25 +25,13 @@ for pos in sorted(pm.alpaca.get_positions(), key=lambda p: p['symbol']):
 
 print()
 print("=== COOLDOWN BOUNDARIES ===")
-print(f"    phantom LLY entries (never filled) -> {pm.in_cooldown('LLY')}   expect (False, 0)")
-print(f"    no history (RKLB)                  -> {pm.in_cooldown('RKLB')}   expect (False, 0)")
-
-saved = list(pm.trim_log)
-for days, expect in ((0, "(True, 30)"), (29, "(True, 1)"), (31, "(False, 0)")):
-    pm.trim_log = [{
-        'date': (datetime.now() - timedelta(days=days)).isoformat(),
-        'symbol': 'RKLB', 'action': 'TRIM', 'fill_state': 'FILLED',
-        'shares_sold': 51.6, 'trim_pct': 0.2, 'order_id': 'synthetic', 'reason': 'test',
-    }]
-    print(f"    trimmed {days:>2}d ago -> {pm.in_cooldown('RKLB')}   expect {expect}")
-pm.trim_log = saved
-
+print("    (cooldown was dropped - profit trim is self-limiting via re-basing)")
 print()
+
 print("=== LIVE SIGNALS ===")
 for pos in sorted(pm.alpaca.get_positions(), key=lambda p: p['symbol']):
     sym = pos['symbol']
     sigs = pm.check_trim_signals(sym, "US_TECH")
-    on_cd, left = pm.in_cooldown(sym)
     if not sigs:
         print(f"    {sym:5} no trim signal")
         continue
@@ -51,6 +39,5 @@ for pos in sorted(pm.alpaca.get_positions(), key=lambda p: p['symbol']):
         print(f"    {sym:5} {s['type']}: {s['reason']}")
         if s.get('action') == 'TRIM':
             qty = float(pos['qty'])
-            state = f"SUPPRESSED, {left}d cooldown left" if on_cd else "cooldown clear"
             print(f"          -> would order {round(qty * s['trim_pct'], 4)} sh "
-                  f"({s['trim_pct']:.0%} of {qty:.0f})  {state}")
+                  f"({s['trim_pct']:.0%} of {qty:.0f})")
