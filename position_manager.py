@@ -227,6 +227,16 @@ class PositionManager:
             pct = mv / equity
             cap = self.trim_rules['max_position_pct']
             if pct > cap:
+                # Trim WINNERS ONLY. Trimming is risk management on something that
+                # has grown, never a reaction to weakness. An over-cap position that
+                # is DOWN is left alone even though that leaves the cap breached,
+                # because enforcing the cap on a loser sells it at a loss - the one
+                # thing the trim path must not do. It remains an ADD candidate.
+                pl = float(pos['unrealized_pl'])
+                if pl <= 0:
+                    print(f"  {pos['symbol']}: over cap ({pct:.1%} vs {cap:.0%}) but "
+                          f"down {pl:,.2f} - a loser, not trimming")
+                    continue
                 if pos['symbol'] in pending_sells:
                     print(f"  {pos['symbol']}: over cap but a cap trim is already "
                           f"pending - skipping")

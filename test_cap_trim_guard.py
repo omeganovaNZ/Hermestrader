@@ -1,18 +1,19 @@
-"""Tests for the cap-trim duplicate-order guard.
+"""Tests for the cap-trim guard: pending-order dedupe AND winners-only.
 
-A cap trim is placed with rung=None, so the ladder's `rungs_fired` guard does
-not cover it. While a cap-trim sell order is still pending (unfilled) the
-position still looks over-cap on the next scan, and a second identical order
-would be placed. These tests pin the guard that prevents it:
+Two independent rules protect the cap-trim path:
 
-  1. A pending SELL order for an over-cap symbol suppresses its cap trim.
-  2. With no pending order the cap trim is emitted as before.
-  3. A pending BUY order must NOT suppress the cap trim.
-  4. If the open-orders query fails, trim anyway (fail open) - silently
-     refusing to trim would disable the cap entirely.
-  5. Only the affected symbol is skipped; other over-cap names still trim.
-  6. get_open_orders() parses the SDK order objects, and returns [] rather
-     than raising on an unusable response.
+A. WINNERS ONLY. A cap trim is risk management on a position that has GROWN,
+   never a reaction to weakness. An over-cap position that is DOWN must be left
+   alone (it is an add candidate), even though that leaves the cap breached,
+   because enforcing the cap on a loser sells it at a loss. A flat position
+   (pl == 0) is not a winner either, so it is left alone too.
+
+B. PENDING-ORDER DEDUPE. A cap trim is placed with rung=None, so the ladder's
+   fired-rung guard does not cover it: while a cap-trim sell order is still
+   pending the position still looks over-cap and a second identical order would
+   be placed. Skip any symbol that already has an open SELL order. A pending BUY
+   must NOT suppress the trim. If the open-orders query fails, trim anyway
+   (fail open) - silently refusing to trim would disable the cap.
 
 The Alpaca client is mocked; nothing touches the network or the order path.
 """
@@ -26,10 +27,13 @@ from position_manager import PositionManager
 EQUITY = 100_000.0          # 10% cap -> $10,000 max market value
 
 
-def pos(symbol, qty, price):
-    return {'symbol': symbol, 'qty': float(qty), 'current_price': float(price),
-            'market_value': float(qty) * float(price), 'avg_entry_price': float(price),
-            'unrealized_pl': 0.0}
+def pos(symbol, qty, price, gain_pct=10.0):
+    """A position that is `gain_pct`% in profit (pass a negative value for a loser)."""
+    entry = float(price) / (1.0 + gain_pct / 100.0)
+    q, px = float(qty), float(price)
+    return {'symbol': symbol, 'qty': q, 'current_price': px,
+            'market_value': q * px, 'avg_entry_price': entry,
+            'unrealized_pl': q * (px - entry)}
 
 
 def make_pm(positions, open_orders):
@@ -45,7 +49,7 @@ def make_pm(positions, open_orders):
     return pm
 
 
-# MRVL 98 @ 227.83 = $22,327 -> 22.3% of equity (over the 10% cap)
+# MRVL 98 @ 227.83 = $22,327 -> 22.3% of equity (over the 10% cap), a winner by default
 OVER_CAP = [pos('MRVL', 98, 227.83)]
 # MU 15 @ 878.84 = $13,183 -> 13.2% (also over)
 TWO_OVER = OVER_CAP + [pos('MU', 15, 878.84)]
@@ -53,16 +57,39 @@ TWO_OVER = OVER_CAP + [pos('MU', 15, 878.84)]
 PENDING_SELL = [{'symbol': 'MRVL', 'side': 'sell', 'qty': 55.6052}]
 
 
-def test_pending_sell_suppresses_cap_trim():
-    pm = make_pm(OVER_CAP, PENDING_SELL)
-    assert pm.position_cap_signals() == [], "a pending cap trim must not be re-issued"
+# --- A. winners only -------------------------------------------------------
 
-
-def test_no_pending_order_still_trims():
+def test_winner_over_cap_is_trimmed():
     pm = make_pm(OVER_CAP, [])
     sigs = pm.position_cap_signals()
     assert len(sigs) == 1 and sigs[0]['symbol'] == 'MRVL', f"got {sigs}"
     assert sigs[0]['shares_to_sell'] > 0
+
+
+def test_loser_over_cap_is_not_trimmed():
+    """The rule that matters: an over-cap position that is DOWN is left alone."""
+    pm = make_pm([pos('MRVL', 98, 227.83, gain_pct=-3.2)], [])
+    assert pm.position_cap_signals() == [], "must never trim a loser"
+
+
+def test_flat_position_is_not_trimmed():
+    """pl == 0 is not a winner, so it is not a trim either."""
+    pm = make_pm([pos('MRVL', 98, 227.83, gain_pct=0.0)], [])
+    assert pm.position_cap_signals() == [], "a flat position is not a winner"
+
+
+def test_loser_is_reported_as_over_cap_but_left_alone():
+    """The position is genuinely over cap - it is skipped for being a loser, not for size."""
+    p = pos('MRVL', 98, 227.83, gain_pct=-3.2)
+    assert p['market_value'] / EQUITY > 0.10, "test setup: must actually be over cap"
+    assert p['unrealized_pl'] < 0, "test setup: must actually be a loser"
+
+
+# --- B. pending-order dedupe ----------------------------------------------
+
+def test_pending_sell_suppresses_cap_trim():
+    pm = make_pm(OVER_CAP, PENDING_SELL)
+    assert pm.position_cap_signals() == [], "a pending cap trim must not be re-issued"
 
 
 def test_pending_buy_does_not_suppress():
@@ -80,6 +107,8 @@ def test_only_affected_symbol_is_skipped():
     sigs = pm.position_cap_signals()
     assert [s['symbol'] for s in sigs] == ['MU'], f"got {[s['symbol'] for s in sigs]}"
 
+
+# --- get_open_orders parsing ----------------------------------------------
 
 def test_get_open_orders_parses_sdk_objects():
     trader = AlpacaTrader.__new__(AlpacaTrader)        # skip __init__ (loads creds, connects)

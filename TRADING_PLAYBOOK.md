@@ -62,15 +62,29 @@ Sizing is `round(qty * pct, 4)` — fractional, so the trim is exactly the state
 position. (The old `int(qty * 0.20)` truncated: 20% of 7 shares became 1 = 14.3%, and any
 position under 5 shares rounded to zero and failed silently.)
 
-**Position cap: 10% of equity.** No satellite position above `max_position_pct`. An over-cap
-position is trimmed back to the cap. (Nash's own range is 5-10%.)
+**Position cap: 10% of equity.** No satellite position above `max_position_pct`. (Nash's own
+range is 5-10%.)
 
-A cap trim is placed with **no ladder rung**, so the ladder's fired-rung guard does not cover
-it — and while a cap-trim sell order is still pending, the position still looks over-cap on
-the next scan, so a second identical order would be placed. `position_cap_signals()` therefore
+**Cap trims are WINNERS ONLY.** A cap trim is risk management on a position that has grown,
+never a reaction to weakness. An over-cap position that is DOWN is left alone — even though
+that leaves the cap breached — because enforcing the cap on a loser would sell it at a loss.
+A flat position (`unrealized_pl == 0`) is not a winner either, so it is left alone too. An
+over-cap loser remains an ADD candidate. Same principle as the trim ladder: *selling is what
+you do when the business is broken; trimming is what you do when the winner has grown.*
+
+**The consequence, which is why ENTRY SIZING matters.** Because the cap is now only enforced on
+winners, an over-cap LOSER can stay over-cap indefinitely — the cap can never correct it while
+it is down. So a position bought above the cap is a position the cap cannot fix. Buys must be
+sized at or below the cap. On 2026-10-17 all four over-cap positions were bought over the cap
+and all four were down (MRVL 23.2% of equity, MU 13.7%, RKLB 13.6%, DDOG 11.5%), so all four
+cap-trim orders were cancelled rather than sold at a loss.
+
+A cap trim is also placed with **no ladder rung**, so the ladder's fired-rung guard does not
+cover it — and while a cap-trim sell order is still pending, the position still looks over-cap
+on the next scan, so a second identical order would be placed. `position_cap_signals()` therefore
 skips any symbol that already has an open sell order. If the open-orders query fails it trims
 anyway (fail open): silently refusing to trim would disable the cap entirely. Pinned by
-`test_cap_trim_guard.py` (7 tests).
+`test_cap_trim_guard.py` (10 tests).
 
 **Add candidates.** A position 20% or more below its 52-week high is reported as an ADD
 candidate — weakness is a buying opportunity, not a trim. Report only; never auto-bought.
