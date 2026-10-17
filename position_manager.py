@@ -287,9 +287,11 @@ class PositionManager:
 
     # ── scan ────────────────────────────────────────────────────────────────────────
 
-    def run_position_management(self) -> int:
+    def run_position_management(self, dry_run: bool = False) -> int:
         print("=" * 80)
         print("  POSITION MANAGEMENT — Tom Nash Trim Ladder")
+        if dry_run:
+            print("  *** DRY RUN — no orders will be placed ***")
         print(f"  Date: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
         ladder = " | ".join(f"+{g:.0%}->{p:.0%}" for g, p in self.trim_rules['ladder'])
         print(f"  Ladder: {ladder}, then re-base and climb again")
@@ -326,6 +328,10 @@ class PositionManager:
             any_ladder = True
             s = signals[0]
             print(f"\n  {sym}: {s['reason']}")
+            if dry_run:
+                print(f"    WOULD TRIM: {s['trim_pct']:.0%} of shares held "
+                      f"({round(float(pos['qty']) * s['trim_pct'], 4):,.2f} sh)")
+                continue
             if self.execute_trim(sym, s['trim_pct'], s['reason'], rung=s['rung'],
                                  re_base=(s['rung'] >= self.trim_rules['reset_after_gain'])):
                 extra = " (re-based - ladder restarts from here)" if s['rung'] >= self.trim_rules['reset_after_gain'] else ""
@@ -342,6 +348,9 @@ class PositionManager:
             print("  all positions within cap")
         for c in caps:
             print(f"  {c['symbol']}: {c['reason']}")
+            if dry_run:
+                print(f"    WOULD TRIM: {c['shares_to_sell']:,.2f} shares")
+                continue
             if self.execute_trim(c['symbol'], c['trim_pct'], c['reason']):
                 print(f"    TRIMMED: ordered {c['shares_to_sell']:,.2f} shares")
                 executed += 1
@@ -365,7 +374,12 @@ class PositionManager:
 
 
 def main():
-    PositionManager().run_position_management()
+    import argparse
+    ap = argparse.ArgumentParser(description="Position management — Tom Nash trim ladder.")
+    ap.add_argument('--dry-run', action='store_true',
+                    help="report what would be trimmed without placing any order")
+    args = ap.parse_args()
+    PositionManager().run_position_management(dry_run=args.dry_run)
 
 
 if __name__ == "__main__":
