@@ -80,14 +80,24 @@ class PositionManager:
         self.ladder_state_path = os.path.join(_HERE, "trim_ladder_state.json")
         self.ladder_state = {}
         if os.path.exists(self.ladder_state_path):
-            with open(self.ladder_state_path, 'r') as f:
-                self.ladder_state = json.load(f)
+            try:
+                with open(self.ladder_state_path, 'r') as f:
+                    self.ladder_state = json.load(f)
+            except (ValueError, OSError):
+                # A corrupt or truncated state file must not brick the scanner:
+                # every symbol re-initialises from avg_entry_price on first sight.
+                print("  WARNING: trim_ladder_state.json unreadable - re-initialising")
+                self.ladder_state = {}
 
     # ── ladder state ────────────────────────────────────────────────────────────────
 
     def save_ladder_state(self) -> None:
-        with open(self.ladder_state_path, 'w') as f:
+        # Write to a temp file and rename, so a crash mid-write cannot leave a
+        # truncated (unparseable) state file behind.
+        tmp = self.ladder_state_path + '.tmp'
+        with open(tmp, 'w') as f:
             json.dump(self.ladder_state, f, indent=2)
+        os.replace(tmp, self.ladder_state_path)
 
     def ladder_entry(self, symbol: str, avg_entry_price: float) -> Dict:
         """Ladder state for symbol, initialised from the entry price on first sight."""
