@@ -16,7 +16,7 @@ from datetime import datetime, timedelta
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from trading_strategy_engine import BacktestEngine, MeanReversionStrategy, fetch_data
 from market_aware_strategy import MarketAwareHybridStrategy, MARKET_CONFIGS
-from portfolio_rules import theme_cap_check
+from portfolio_rules import theme_cap_check_safe
 
 
 def load_credentials():
@@ -405,7 +405,12 @@ class AlpacaTrader:
                         # AI-hardware sleeve and nothing enforced it, which is how that
                         # sleeve reached 75% of long market value. Refuse any order that
                         # would push its theme past the ceiling.
-                        ok, why = theme_cap_check(
+                        #
+                        # FAILS CLOSED: theme_cap_check_safe refuses the buy when the check
+                        # cannot be evaluated. A risk limit that opens up whenever it fails
+                        # is not a limit. It sits outside the order try/except below, so a
+                        # failure here cannot be mistaken for a broker rejection.
+                        ok, why = theme_cap_check_safe(
                             symbol, shares * price, positions, float(account['equity']))
                         if not ok:
                             print(f"  BUY {symbol}: BLOCKED by the theme cap - {why}")

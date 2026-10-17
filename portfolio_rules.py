@@ -104,6 +104,20 @@ def theme_cap_check(symbol, added_value, positions, equity, max_pct=MAX_THEME_PC
     return True, f"{th} would be {after:.1%} of equity (cap {max_pct:.0%})"
 
 
+def theme_cap_check_safe(symbol, added_value, positions, equity, max_pct=MAX_THEME_PCT):
+    """Fail-CLOSED wrapper around theme_cap_check, for use on the order path.
+
+    If the check cannot be evaluated the buy is REFUSED, not allowed. A risk limit that
+    opens up whenever it fails to evaluate is not a limit - so an unreadable position
+    value must block the order, loudly, rather than wave it through.
+    """
+    try:
+        return theme_cap_check(symbol, added_value, positions, equity, max_pct)
+    except Exception as e:
+        return False, (f"theme cap could not be evaluated ({type(e).__name__}: {e}) "
+                       f"- refusing the buy")
+
+
 # ── thesis review (REPORT ONLY - never sells) ───────────────────────────────────────────
 
 REVIEW_AFTER_DAYS = 180      # long enough to have a view

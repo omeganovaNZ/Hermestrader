@@ -97,6 +97,20 @@ def test_zero_equity_does_not_crash_or_block():
     assert ok is True and 'equity' in why.lower()
 
 
+def test_unreadable_position_value_fails_closed():
+    """A risk limit that opens up when it cannot be evaluated is not a limit."""
+    broken = [{'symbol': 'MRVL', 'market_value': 'not-a-number'}]
+    ok, why = pr.theme_cap_check_safe('NVDA', 5_000, broken, EQUITY)
+    assert ok is False, "an unreadable position value must REFUSE the buy"
+    assert 'could not be evaluated' in why
+
+
+def test_safe_wrapper_delegates_when_the_input_is_fine():
+    positions = [pos('MRVL', 100, 200, 200), pos('MU', 37.5, 400, 400)]   # 35%
+    assert pr.theme_cap_check_safe('AMD', 4_000, positions, EQUITY)[0] is True
+    assert pr.theme_cap_check_safe('AMD', 6_000, positions, EQUITY)[0] is False
+
+
 # ── thesis review ───────────────────────────────────────────────────────────────────────
 
 def test_long_and_down_is_flagged():
