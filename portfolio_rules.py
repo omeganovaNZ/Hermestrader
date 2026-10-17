@@ -1,0 +1,154 @@
+"""Portfolio-level rules that used to exist only as prose in TRADING_PLAYBOOK.md.
+
+Two rules live here, both pure functions so they can be tested without a network:
+
+1. THE THEME (SLEEVE) CAP. The playbook declared a 40% ceiling on the AI-hardware sleeve
+   and then nothing enforced it, which is exactly how that sleeve reached 75% of long
+   market value with a 0.53 mean pairwise correlation inside it and portfolio volatility
+   at 3.9x the market. `theme_cap_check` is called by the buy path and refuses any order
+   that would push a theme past the ceiling.
+
+2. THE THESIS REVIEW. The system has no downside management at all: the profit trim only
+   fires above +100%, the cap trim only sells winners, and `thesis_break_exit` is called by
+   nothing. So a position can fall 60% and the system does nothing. That is the owner's
+   deliberate rule ("at no other time do I want to trim what has been invested"), so this
+   does NOT sell anything - it FLAGS positions for a human decision and reports them.
+
+LIMITATION, stated plainly: Alpaca's free tier provides no sector or industry field, so the
+theme map below is HAND-MAINTAINED. A symbol that is not listed is "unclassified" and no
+theme cap applies to it, so a new name in an existing theme will slip through until it is
+added. `test_portfolio_rules.py` asserts that every currently-held symbol is classified, and
+`unclassified_exposure()` reports whatever is unclassified so the gap stays visible.
+"""
+
+# ── theme (sleeve) cap ──────────────────────────────────────────────────────────────────
+
+MAX_THEME_PCT = 0.40
+
+# One theme per symbol. The AI_HARDWARE grouping deliberately matches the playbook's own
+# "AI-hardware sleeve" (MRVL, RKLB, MU, DDOG, AMD) even though RKLB is space and DDOG is
+# software - they were grouped because they MOVE TOGETHER (measured 0.53 mean pairwise
+# correlation), and correlation is what makes a sleeve a risk.
+THEMES = {
+    "AI_HARDWARE": {
+        "MRVL", "MU", "AMD", "NVDA", "AVGO", "TSM", "ASML", "AMAT", "LRCX", "KLAC",
+        "SNPS", "CDNS", "MXL", "SNDK", "SMCI", "ANET", "ARM", "DELL", "ALAB", "COHU",
+        "INTC", "SIMO", "RKLB", "DDOG", "NET", "SNOW", "PLTR",
+    },
+    "POWER_ENERGY": {
+        "BE", "GEV", "VICR", "ENPH", "FSLR", "NEE", "XOM", "CVX", "MPC", "PSX",
+        "VLO", "DINO", "CVI", "APA",
+    },
+    "BIOTECH_HEALTH": {
+        "LLY", "MRNA", "IOVA", "KOD", "TXG", "CRSP", "NTLA", "BEAM", "EDIT", "VRTX",
+        "RPRX", "TVTX",
+    },
+    "CYBERSECURITY": {"CRWD", "PANW", "OKTA", "S"},
+    "REAL_ESTATE": {"PK", "DRH", "OUT"},
+}
+
+
+def theme_of(symbol):
+    """The theme a symbol belongs to, or None when it is unclassified."""
+    for name, members in THEMES.items():
+        if symbol in members:
+            return name
+    return None
+
+
+def theme_exposure(positions, equity):
+    """{theme: {'value', 'pct', 'symbols'}} for every theme with a holding."""
+    out = {}
+    for p in positions:
+        th = theme_of(p["symbol"])
+        if th is None:
+            continue
+        b = out.setdefault(th, {"value": 0.0, "symbols": []})
+        b["value"] += float(p["market_value"])
+        b["symbols"].append(p["symbol"])
+    for b in out.values():
+        b["pct"] = b["value"] / equity if equity > 0 else 0.0
+        b["symbols"].sort()
+    return out
+
+
+def unclassified_exposure(positions, equity):
+    """{'value', 'pct', 'symbols'} for held symbols no theme claims. A visible gap, not a
+    silent one: these names are subject to no cap."""
+    syms, val = [], 0.0
+    for p in positions:
+        if theme_of(p["symbol"]) is None:
+            syms.append(p["symbol"])
+            val += float(p["market_value"])
+    return {"value": val, "pct": val / equity if equity > 0 else 0.0, "symbols": sorted(syms)}
+
+
+def theme_cap_check(symbol, added_value, positions, equity, max_pct=MAX_THEME_PCT):
+    """(ok, reason) for a proposed buy of `added_value` dollars of `symbol`.
+
+    Refuses when the buy would push the symbol's theme past `max_pct` of equity. A symbol
+    in no known theme is allowed through - the cap cannot constrain what it cannot classify
+    - and the reason says so.
+    """
+    th = theme_of(symbol)
+    if th is None:
+        return True, f"{symbol} is unclassified - no theme cap applies"
+    if equity <= 0:
+        return True, "equity unavailable - theme cap not evaluated"
+    cur = theme_exposure(positions, equity).get(th, {}).get("value", 0.0)
+    after = (cur + float(added_value)) / equity
+    cur_pct = cur / equity
+    if after > max_pct:
+        return False, (f"{th} would be {after:.1%} of equity after this buy "
+                       f"(cap {max_pct:.0%}, currently {cur_pct:.1%})")
+    return True, f"{th} would be {after:.1%} of equity (cap {max_pct:.0%})"
+
+
+# ── thesis review (REPORT ONLY - never sells) ───────────────────────────────────────────
+
+REVIEW_AFTER_DAYS = 180      # long enough to have a view
+REVIEW_DRAWDOWN = 0.25       # 25% below cost is a real loss, not noise
+STALE_AFTER_DAYS = 365       # a year under water is a stale thesis
+
+
+def thesis_review(positions, held_days, review_after_days=REVIEW_AFTER_DAYS,
+                  review_drawdown=REVIEW_DRAWDOWN, stale_after_days=STALE_AFTER_DAYS):
+    """Flag positions for a human decision. Pure - returns a list, sells nothing.
+
+    `held_days` maps symbol -> days held (None/absent means unknown age, which is not
+    treated as old enough to judge). Two flags:
+
+      STALE   held a year or more and still below cost
+      LONG_AND_DOWN  held past the review window and down `review_drawdown` or more
+
+    Deliberately not a stop loss. The owner's rule is that invested capital is never trimmed
+    on weakness; this exists so that weakness is at least SURFACED rather than invisible.
+    """
+    out = []
+    for p in positions:
+        sym = p["symbol"]
+        days = held_days.get(sym)
+        if days is None:
+            continue
+        qty = float(p["qty"])
+        cost = qty * float(p["avg_entry_price"])
+        if cost <= 0:
+            continue
+        pl_pct = float(p["market_value"]) / cost - 1
+
+        if days >= stale_after_days and pl_pct < 0:
+            out.append({
+                "symbol": sym, "flag": "STALE", "held_days": days,
+                "pl_pct": pl_pct, "action": "REPORT_ONLY",
+                "reason": (f"held {days}d and still {pl_pct:+.1%} - the thesis has had a "
+                           f"year and has not worked; review it"),
+            })
+        elif pl_pct <= -review_drawdown and days >= review_after_days:
+            out.append({
+                "symbol": sym, "flag": "LONG_AND_DOWN", "held_days": days,
+                "pl_pct": pl_pct, "action": "REPORT_ONLY",
+                "reason": (f"held {days}d and down {pl_pct:.1%} (threshold "
+                           f"{-review_drawdown:.0%}) - review the thesis"),
+            })
+    out.sort(key=lambda r: r["pl_pct"])
+    return out

@@ -51,6 +51,8 @@ from alpaca_trader import AlpacaTrader
 from ensemble_trader import EnsembleTrader
 from market_aware_strategy import MarketAwareHybridStrategy, MARKET_CONFIGS
 from trading_strategy_engine import fetch_data
+from portfolio_rules import (MAX_THEME_PCT, theme_exposure, unclassified_exposure,
+                             thesis_review)
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -350,6 +352,64 @@ class PositionManager:
                 continue
         return out
 
+    def theme_signals(self) -> List[Dict]:
+        """Theme (sleeve) exposure against the cap, plus anything unclassified.
+
+        REPORT ONLY. The cap itself is enforced at the buy path
+        (`portfolio_rules.theme_cap_check`); this exists so the exposure is visible on every
+        scan instead of being discovered months later at 75% of long market value.
+        """
+        account = self.alpaca.get_account()
+        equity = float(account['equity'])
+        positions = self.alpaca.get_positions()
+
+        out = []
+        for th, b in sorted(theme_exposure(positions, equity).items(),
+                            key=lambda kv: -kv[1]['value']):
+            over = b['pct'] > MAX_THEME_PCT
+            out.append({
+                'type': 'THEME_EXPOSURE', 'action': 'REPORT_ONLY', 'theme': th,
+                'pct': b['pct'], 'value': b['value'], 'symbols': b['symbols'],
+                'over_cap': over,
+                'reason': (f"{th} is {b['pct']:.1%} of equity - "
+                           f"{'OVER' if over else 'within'} the {MAX_THEME_PCT:.0%} cap "
+                           f"({', '.join(b['symbols'])})"),
+            })
+
+        un = unclassified_exposure(positions, equity)
+        if un['symbols']:
+            out.append({
+                'type': 'THEME_UNCLASSIFIED', 'action': 'REPORT_ONLY', 'theme': None,
+                'pct': un['pct'], 'value': un['value'], 'symbols': un['symbols'],
+                'over_cap': False,
+                'reason': (f"UNCLASSIFIED {un['pct']:.1%} of equity "
+                           f"({', '.join(un['symbols'])}) - no theme cap applies to these, "
+                           f"so add them to portfolio_rules.THEMES"),
+            })
+        return out
+
+    def thesis_review_signals(self) -> List[Dict]:
+        """Positions worth a human look: held long and materially down.
+
+        NEVER SELLS. The owner's rule is that invested capital is not trimmed on weakness,
+        so this only surfaces the ones that deserve a decision - which is the gap the system
+        had, since the profit trim needs +100% and the cap trim only sells winners.
+        """
+        positions = self.alpaca.get_positions()
+        held = {}
+        for p in positions:
+            sym = p['symbol']
+            try:
+                opened = self.alpaca.get_first_buy_date(sym)
+            except Exception:
+                opened = None
+            if opened is None:
+                held[sym] = None                      # unknown age is not "old enough"
+                continue
+            now = datetime.now(opened.tzinfo) if opened.tzinfo else datetime.now()
+            held[sym] = (now - opened).days
+        return thesis_review(positions, held)
+
     # ── execution ───────────────────────────────────────────────────────────────────
 
     def execute_trim(self, symbol: str, trim_pct: float, reason: str,
@@ -519,6 +579,17 @@ class PositionManager:
                 executed += 1
             else:
                 print("    TRIM FAILED")
+
+        print(f"\n{'-' * 80}\n  THEME EXPOSURE (cap {MAX_THEME_PCT:.0%})\n{'-' * 80}")
+        for t in self.theme_signals():
+            print(f"  {t['reason']}")
+
+        print(f"\n{'-' * 80}\n  THESIS REVIEW (report only - never sells)\n{'-' * 80}")
+        revs = self.thesis_review_signals()
+        if not revs:
+            print("  nothing flagged")
+        for r in revs:
+            print(f"  {r['symbol']}: {r['reason']}")
 
         print(f"\n{'-' * 80}\n  ADD CANDIDATES (report only - never auto-bought)\n{'-' * 80}")
         adds = self.add_signals()

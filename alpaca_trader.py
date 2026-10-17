@@ -16,6 +16,7 @@ from datetime import datetime, timedelta
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from trading_strategy_engine import BacktestEngine, MeanReversionStrategy, fetch_data
 from market_aware_strategy import MarketAwareHybridStrategy, MARKET_CONFIGS
+from portfolio_rules import theme_cap_check
 
 
 def load_credentials():
@@ -400,9 +401,18 @@ class AlpacaTrader:
                         symbol, signal['signal'], account['portfolio_value']
                     )
                     if shares > 0:
+                        # THEME (SLEEVE) CAP. The playbook declared a 40% ceiling on the
+                        # AI-hardware sleeve and nothing enforced it, which is how that
+                        # sleeve reached 75% of long market value. Refuse any order that
+                        # would push its theme past the ceiling.
+                        ok, why = theme_cap_check(
+                            symbol, shares * price, positions, float(account['equity']))
+                        if not ok:
+                            print(f"  BUY {symbol}: BLOCKED by the theme cap - {why}")
+                            continue
                         try:
                             order = self.place_buy_order(symbol, shares)
-                            print(f"  BUY {symbol}: {shares} shares")
+                            print(f"  BUY {symbol}: {shares} shares  [{why}]")
                             trades_executed += 1
                             self.trades_log.append({
                                 'date': datetime.now().isoformat(),
