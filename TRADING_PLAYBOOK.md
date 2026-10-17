@@ -131,7 +131,7 @@ their inferred basis):
 5. **The "gate" is the essential ingredient.** A trend rule without the "after a long gain"
    condition liquidated positions early and lost $501 on the growth names.
 
-**The adaptive gate (ADOPTED):** the ladder's first trim is skipped when the move is already
+**The adaptive gate (recommended, pending implementation in `position_manager.py`):** the ladder's first trim is skipped when the move is already
 parabolic. When the price first reaches +50% of the ladder base, compute
 `extension = close / 50-day SMA`; if `extension >= 1.20` skip the 10% trim and let it run,
 otherwise take it as normal. Only the first rung is gated.
