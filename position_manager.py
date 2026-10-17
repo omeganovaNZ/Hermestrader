@@ -80,12 +80,18 @@ class PositionManager:
         self.ladder_state_path = os.path.join(_HERE, "trim_ladder_state.json")
         self.ladder_state = {}
         if os.path.exists(self.ladder_state_path):
+            loaded = None
             try:
                 with open(self.ladder_state_path, 'r') as f:
-                    self.ladder_state = json.load(f)
+                    loaded = json.load(f)
             except (ValueError, OSError):
-                # A corrupt or truncated state file must not brick the scanner:
-                # every symbol re-initialises from avg_entry_price on first sight.
+                pass
+            if isinstance(loaded, dict):
+                self.ladder_state = loaded
+            else:
+                # Corrupt, truncated, or valid JSON that is not an object (e.g. a
+                # list or string): every symbol re-initialises from avg_entry_price
+                # on first sight, so a bad file must never brick the scanner.
                 print("  WARNING: trim_ladder_state.json unreadable - re-initialising")
                 self.ladder_state = {}
 
