@@ -12,6 +12,17 @@ TRIM LADDER — gain measured from that symbol's ladder base price:
 One rung fires per scan, lowest unfired first, so a gap-up climbs the ladder over
 successive scans rather than dumping every rung at once.
 
+ADAPTIVE FIRST-RUNG GATE (added 2026-10-17, from a 20-name cross-validation — see
+TRADING_PLAYBOOK.md). The first rung's 10% trim is SKIPPED when the move is already
+parabolic: at the moment the price first reaches +50% of the ladder base, if
+`close / 50-day SMA >= parabolic_ext` (1.20), the rung is marked passed without selling and
+the position is allowed to run. The rationale is that a parabolic +50% is usually the early
+stage of a multi-bagger, whereas a choppy +50% is a rally worth harvesting — and the two
+cannot be told apart by price alone, only by extension. Without the gate the ladder sold
+into the early stage of every 5-15x move; with it, the cost on flat/choppy names is
+measurably zero (-0.006 mean). The rung is marked passed permanently, matching the design
+that was backtested.
+
 Also enforced from the same framework:
   - max_position_pct — no position above this share of portfolio equity. An over-cap
     position is trimmed down to the cap.
@@ -53,6 +64,10 @@ class PositionManager:
             'reset_after_gain': 1.50,   # above the top rung, re-base and climb again
             'max_position_pct': 0.10,   # Nash: 5-10% cap per satellite position
             'add_drawdown': 0.20,       # add when 20% off the 52-week high
+            # Adaptive first-rung gate: skip the +50% trim when the move is already
+            # parabolic, i.e. close / (parabolic_ma-day SMA) >= parabolic_ext.
+            'parabolic_ma': 50,
+            'parabolic_ext': 1.20,
         }
 
         self.trim_log = []
@@ -108,10 +123,32 @@ class PositionManager:
             'all_rungs_fired': not pending,
         }
 
+    def ma_extension(self, symbol: str, current_price: float) -> Optional[float]:
+        """How extended the move already is: current_price / N-day SMA.
+
+        Returns None when the average cannot be computed (no data, or a non-positive
+        average); the caller then treats the gate as untriggered and fires the rung
+        normally, since refusing to trim is the riskier failure.
+        """
+        ma = int(self.trim_rules.get('parabolic_ma', 50))
+        try:
+            data = fetch_data(symbol, "1y")
+            sma = float(data['Close'].rolling(ma).mean().iloc[-1])
+            if sma <= 0:
+                return None
+            return float(current_price) / sma
+        except Exception:
+            return None
+
     # ── trims ───────────────────────────────────────────────────────────────────────
 
     def check_trim_signals(self, symbol: str, config_name: Optional[str] = None) -> List[Dict]:
-        """Ladder rungs only. A crossed-but-unfired rung is the sole trim trigger."""
+        """Ladder rungs only. A crossed-but-unfired rung is the sole trim trigger.
+
+        The first rung is subject to the adaptive parabolic gate: if the move is already
+        extended when the price first reaches +50% of the base, the rung is marked passed
+        without selling and the position is allowed to run.
+        """
         signals = []
         position = next((p for p in self.alpaca.get_positions() if p['symbol'] == symbol), None)
         if position is None:
@@ -121,11 +158,18 @@ class PositionManager:
             avg_entry = float(position['avg_entry_price'])
             current = float(position['current_price'])
             st = self.next_rung(symbol, avg_entry, current)
+            entry = self.ladder_entry(symbol, avg_entry)
 
-            for gain_rung, trim_pct in self.trim_rules['ladder']:
+            for idx, (gain_rung, trim_pct) in enumerate(self.trim_rules['ladder']):
                 if gain_rung in st['rungs_fired']:
                     continue
                 if st['gain_from_base'] >= gain_rung:
+                    if idx == 0:
+                        ext = self.ma_extension(symbol, current)
+                        if ext is not None and ext >= float(self.trim_rules['parabolic_ext']):
+                            entry['rungs_fired'].append(gain_rung)
+                            self.save_ladder_state()
+                            break
                     signals.append({
                         'type': f'LADDER_{int(gain_rung * 100)}',
                         'action': 'TRIM',

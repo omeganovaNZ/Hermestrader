@@ -127,11 +127,16 @@ their inferred basis):
 3. **The rung is a regime parameter.** Performance on Panel A rises monotonically as the rung
    is raised; on Panel B it falls monotonically. Opposite directions is the strongest evidence
    there is that no single fixed setting is correct.
-4. **Trailing stops are dominated.** Worst on the winners by a wide margin. Do not add one.
+4. **The trailing stop is NOT dominated — it is roughly level with the ladder.** It beats the
+   ladder on the winners panel (4.29x vs 4.21x mean) and trails it on the holdings (1.20x vs
+   1.26x). An earlier version of this playbook claimed it was dominated on both panels; that
+   was wrong, and it was wrong because of a cash-accounting bug (credited 80% of the position,
+   removed 20%). Do not add one — but because it is not better where it matters, not because
+   it is broadly bad.
 5. **The "gate" is the essential ingredient.** A trend rule without the "after a long gain"
    condition liquidated positions early and lost $501 on the growth names.
 
-**The adaptive gate (recommended, pending implementation in `position_manager.py`):** the ladder's first trim is skipped when the move is already
+**The adaptive gate (implemented 2026-10-17; pinned by `test_adaptive_gate.py`):** the ladder's first trim is skipped when the move is already
 parabolic. When the price first reaches +50% of the ladder base, compute
 `extension = close / 50-day SMA`; if `extension >= 1.20` skip the 10% trim and let it run,
 otherwise take it as normal. Only the first rung is gated.
@@ -165,6 +170,31 @@ yfinance closes do not reproduce the documented headline prices for every name (
 a documented $84.83), so absolute gains won't match the source document — the *comparison*
 between strategies is unaffected since all use the same data. One 12-month window, and Panel B
 is effectively decided by five names.
+
+---
+
+### How the strategy evolves — a standing principle
+
+The trim ladder is not a fixed artefact. It is a hypothesis that is re-tested against data and
+revised when the evidence is good enough. Four rules govern any change:
+
+1. **A change must be tested, not asserted.** Every modification recorded above was backtested
+   on the same 20 names under the same arms before it was adopted. The "+100% rung" change was
+   tested and *rejected* on its numbers.
+2. **A change must improve one regime without damaging another.** The rung is a regime
+   parameter — explosive winners want it high, flat/choppy names want it low. A variant that
+   helps only one panel is a trade, not an improvement, and is adopted only when the cost on
+   the other panel is measurably zero. That is why the adaptive gate was accepted (Panel A
+   +0.184, Panel B -0.006) and the outright rung raise was not (+0.596 / -0.074).
+3. **Refutations are kept, not discarded.** When a hypothesis fails, the failure is recorded
+   with its numbers so the same mistake is not re-made.
+4. **Code follows evidence, not the reverse.** A change is implemented in
+   `position_manager.py` only after it survives rules 1-3, and the implementation is then
+   pinned by tests (`test_adaptive_gate.py`) so a later refactor cannot silently undo it.
+
+Going forward the scan keeps collecting data, and any proposed change runs through this same
+gate before it touches live orders. This is the mechanism by which the strategy is expected to
+get better and more robust over time rather than being set once and left to rot.
 
 **Fractional positions are handled.** `get_positions()` returns `qty` as a float; it used to
 cast to `int`, which would truncate a fractional position (5.6 shares -> 5) and corrupt
