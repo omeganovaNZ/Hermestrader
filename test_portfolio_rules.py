@@ -92,9 +92,14 @@ def test_unclassified_symbol_passes_and_says_so():
     assert 'unclassified' in why.lower()
 
 
-def test_zero_equity_does_not_crash_or_block():
+def test_zero_equity_REFUSES_the_buy():
+    """This used to return ok=True ('not evaluated'), which quietly disabled the cap -
+    the exact opposite of the fail-closed contract the order path relies on."""
     ok, why = pr.theme_cap_check('AMD', 1_000, [], 0.0)
-    assert ok is True and 'equity' in why.lower()
+    assert ok is False, "an unusable equity must REFUSE the buy"
+    assert 'equity' in why.lower()
+    ok, _ = pr.theme_cap_check('AMD', 1_000, [], -5.0)
+    assert ok is False, "negative equity must REFUSE the buy"
 
 
 def test_unreadable_position_value_fails_closed():
@@ -161,6 +166,68 @@ def test_review_is_sorted_worst_first():
     revs = pr.thesis_review(p, {'MRVL': 200, 'MU': 200, 'AMD': 200})
     pls = [r['pl_pct'] for r in revs]
     assert pls == sorted(pls), f"not worst-first: {pls}"
+
+
+# ── boundary equality: where off-by-one bugs live ───────────────────────────────────────
+# A mutation audit found NONE of these four boundaries was exercised, so changing >= to >
+# (or <= to <) at any of them would have survived the entire suite.
+
+def test_cap_boundary_at_exactly_40pct():
+    """`after > max_pct` means landing exactly ON the ceiling passes; going past it does not."""
+    positions = [pos('MRVL', 100, 200, 200), pos('MU', 50, 400, 400)]     # exactly 40.0%
+    ok, why = pr.theme_cap_check('AMD', 0.0, positions, EQUITY)
+    assert ok is True, why
+    ok, why = pr.theme_cap_check('AMD', 0.01, positions, EQUITY)           # 40.00001%
+    assert ok is False, why
+
+
+def test_review_window_boundary_at_exactly_180_days():
+    p = [pos('MRVL', 100, 200, 140)]                                       # -30%
+    assert len(pr.thesis_review(p, {'MRVL': 180})) == 1, "180d is in-window"
+    assert pr.thesis_review(p, {'MRVL': 179}) == [], "179d is not"
+
+
+def test_drawdown_boundary_at_exactly_25pct():
+    p = [pos('MRVL', 100, 200, 150)]                                       # exactly -25%
+    assert len(pr.thesis_review(p, {'MRVL': 200})) == 1, "-25% is 'or more'"
+    p = [pos('MRVL', 100, 200, 150.2)]                                     # -24.9%
+    assert pr.thesis_review(p, {'MRVL': 200}) == []
+
+
+def test_stale_boundary_at_exactly_365_days():
+    p = [pos('MRVL', 100, 200, 199)]                                       # -0.5%
+    assert len(pr.thesis_review(p, {'MRVL': 365})) == 1, "365d is 'a year or more'"
+    assert pr.thesis_review(p, {'MRVL': 364}) == []
+
+
+def test_deep_loss_past_a_year_reports_the_deeper_flag():
+    """The elif order used to make LONG_AND_DOWN unreachable past 365 days, so a position
+    down 90% after 500 days reported as merely STALE and the severity was lost."""
+    revs = pr.thesis_review([pos('MRVL', 100, 200, 20)], {'MRVL': 500})    # -90%
+    assert len(revs) == 1
+    assert revs[0]['flag'] == 'LONG_AND_DOWN', f"got {revs[0]['flag']}"
+
+
+# ── robustness: an unreadable row must not crash the scan ───────────────────────────────
+
+def test_unreadable_rows_are_skipped_not_crashed():
+    good = pos('MU', 100, 200, 140)
+    bad = [{'symbol': 'X', 'qty': None, 'avg_entry_price': 100, 'market_value': 50},
+           {'symbol': 'Y', 'qty': 10, 'avg_entry_price': None, 'market_value': 50},
+           {'symbol': 'Z'}]
+    revs = pr.thesis_review([good] + bad, {'MU': 200, 'X': 200, 'Y': 200, 'Z': 200})
+    assert [r['symbol'] for r in revs] == ['MU'], f"got {[r['symbol'] for r in revs]}"
+
+
+def test_nan_market_value_is_skipped_not_crashed():
+    nan = pos('MU', 100, 200, 200)
+    nan['market_value'] = float('nan')
+    assert pr.thesis_review([nan], {'MU': 500}) == []
+
+
+def test_zero_cost_position_is_skipped():
+    z = {'symbol': 'MU', 'qty': 0, 'avg_entry_price': 200, 'market_value': 0}
+    assert pr.thesis_review([z], {'MU': 500}) == []
 
 
 if __name__ == "__main__":

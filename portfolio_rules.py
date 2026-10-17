@@ -21,6 +21,8 @@ added. `test_portfolio_rules.py` asserts that every currently-held symbol is cla
 `unclassified_exposure()` reports whatever is unclassified so the gap stays visible.
 """
 
+import math
+
 # ── theme (sleeve) cap ──────────────────────────────────────────────────────────────────
 
 MAX_THEME_PCT = 0.40
@@ -94,7 +96,12 @@ def theme_cap_check(symbol, added_value, positions, equity, max_pct=MAX_THEME_PC
     if th is None:
         return True, f"{symbol} is unclassified - no theme cap applies"
     if equity <= 0:
-        return True, "equity unavailable - theme cap not evaluated"
+        # Fail CLOSED. This used to return True ("not evaluated"), which contradicted the
+        # fail-closed contract of the order-path wrapper: a zero or unreadable equity
+        # silently disabled the cap. If the denominator is unusable the limit is
+        # unverifiable, so the buy is refused.
+        return False, ("equity is unavailable or non-positive, so the theme cap cannot be "
+                       "evaluated - refusing the buy")
     cur = theme_exposure(positions, equity).get(th, {}).get("value", 0.0)
     after = (cur + float(added_value)) / equity
     cur_pct = cur / equity
@@ -140,29 +147,44 @@ def thesis_review(positions, held_days, review_after_days=REVIEW_AFTER_DAYS,
     """
     out = []
     for p in positions:
-        sym = p["symbol"]
+        try:
+            sym = p["symbol"]
+        except (KeyError, TypeError):
+            continue
         days = held_days.get(sym)
         if days is None:
             continue
-        qty = float(p["qty"])
-        cost = qty * float(p["avg_entry_price"])
-        if cost <= 0:
+        try:
+            days = int(days)
+            cost = float(p["qty"]) * float(p["avg_entry_price"])
+            mv = float(p["market_value"])
+        except (KeyError, TypeError, ValueError):
+            # An unreadable row must not crash the scan. It is skipped, which does mean a
+            # position with a corrupt value goes UNREVIEWED - so this is deliberately quiet
+            # rather than pretending it was judged.
             continue
-        pl_pct = float(p["market_value"]) / cost - 1
+        if not (math.isfinite(cost) and math.isfinite(mv)) or cost <= 0:
+            continue
+        pl_pct = mv / cost - 1
+        if not math.isfinite(pl_pct):
+            continue
 
-        if days >= stale_after_days and pl_pct < 0:
-            out.append({
-                "symbol": sym, "flag": "STALE", "held_days": days,
-                "pl_pct": pl_pct, "action": "REPORT_ONLY",
-                "reason": (f"held {days}d and still {pl_pct:+.1%} - the thesis has had a "
-                           f"year and has not worked; review it"),
-            })
-        elif pl_pct <= -review_drawdown and days >= review_after_days:
+        # ORDER MATTERS: the deeper flag wins regardless of age. Testing STALE first (as
+        # this did) made LONG_AND_DOWN unreachable past 365 days, so a position down 80%
+        # after 500 days reported as merely "stale" and the severity was lost.
+        if pl_pct <= -review_drawdown and days >= review_after_days:
             out.append({
                 "symbol": sym, "flag": "LONG_AND_DOWN", "held_days": days,
                 "pl_pct": pl_pct, "action": "REPORT_ONLY",
                 "reason": (f"held {days}d and down {pl_pct:.1%} (threshold "
                            f"{-review_drawdown:.0%}) - review the thesis"),
+            })
+        elif days >= stale_after_days and pl_pct < 0:
+            out.append({
+                "symbol": sym, "flag": "STALE", "held_days": days,
+                "pl_pct": pl_pct, "action": "REPORT_ONLY",
+                "reason": (f"held {days}d and still {pl_pct:+.1%} - the thesis has had a "
+                           f"year and has not worked; review it"),
             })
     out.sort(key=lambda r: r["pl_pct"])
     return out

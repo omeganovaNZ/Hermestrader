@@ -31,8 +31,19 @@ than falling to ~37.9%.** All four positions remain over the cap until they turn
 
 **Portfolio risk (measured, not assumed):** annualised vol **49.0%** vs SPY 12.7% —
 3.9x the market. AI-hardware sleeve is ~75% of long market value against this
-playbook's own 40% ceiling, with mean pairwise correlation 0.53 inside it. Nothing in the
-code enforces that ceiling — it is prose only, which is precisely how it reached 75%.
+playbook's own 40% ceiling. The ceiling is now **enforced in code** (`portfolio_rules`); it
+was prose only before, which is precisely how it reached 75%.
+
+*Correction (2026-10-18):* the figure previously quoted here — "mean pairwise correlation 0.53
+inside the sleeve" — is **wrong**. 0.53 is the MRVL–MU pair, not the sleeve average.
+Recomputed over 1 year of daily closes, the 5x5 mean pairwise correlation is **0.33**, and
+DDOG is nearly uncorrelated with the rest (0.07–0.11). The concentration risk is real; the
+number originally given for it was overstated.
+
+*Measured value of the cap:* scaling the sleeve from 70.7% to 40% of equity (freed weight
+held as cash) cuts annualised volatility from **46.4% to 29.6% (−36%)** and max drawdown from
+**−28.7% to −18.9% (−34%)**. The cap earns its place on concentration grounds — just not on
+the correlation figure that was originally offered as its justification.
 
 ## Strategy Summary
 

@@ -109,8 +109,12 @@ class AlpacaTrader:
         # three different caps, none of them agreeing, which is how four positions ended up
         # over-cap on the day they were bought.
         self.max_position_pct = 0.08
-        self.risk_per_trade = 0.03       # 3% risk per trade (higher than default 2%)
-    
+        # NOTE: there used to be a `self.risk_per_trade = 0.03` here. It was never read -
+        # calculate_position_size is called without a risk_pct argument - and even if it
+        # were wired in it could not change the answer: risking 3% against a 10% stop
+        # implies a 30% position, which the 8% entry cap always truncates. Size is
+        # determined by the cap. Removed rather than left looking like a live control.
+
     def connect(self):
         """Connect to Alpaca Paper Trading."""
         from alpaca.trading.client import TradingClient
@@ -419,6 +423,15 @@ class AlpacaTrader:
                             order = self.place_buy_order(symbol, shares)
                             print(f"  BUY {symbol}: {shares} shares  [{why}]")
                             trades_executed += 1
+                            # Track the new holding so LATER buys in this SAME scan are
+                            # measured against the updated book, not the pre-scan snapshot.
+                            # `positions` is fetched once before the loop, so without this
+                            # every buy in a scan is checked against the same stale list and
+                            # two buys that each pass individually can collectively breach
+                            # the theme cap. Only symbol and market_value are needed - that
+                            # is all the theme guard reads - so no extra API call is made.
+                            positions = positions + [{'symbol': symbol,
+                                                      'market_value': shares * price}]
                             self.trades_log.append({
                                 'date': datetime.now().isoformat(),
                                 'action': 'BUY',
