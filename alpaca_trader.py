@@ -142,6 +142,31 @@ class AlpacaTrader:
             })
         return result
     
+    def get_open_orders(self):
+        """Open (unfilled) orders as dicts: {'symbol', 'side', 'qty'}.
+
+        Used to stop a cap trim being placed twice: while a cap-trim sell order
+        is still pending the position still looks over-cap, and a cap trim
+        carries no ladder rung, so nothing else would prevent the duplicate.
+        Returns [] rather than raising if the response is unusable.
+        """
+        from alpaca.trading.requests import GetOrdersRequest
+        from alpaca.trading.enums import QueryOrderStatus
+
+        orders = self.trading_client.get_orders(
+            filter=GetOrdersRequest(status=QueryOrderStatus.OPEN))
+        if not isinstance(orders, (list, tuple)):
+            return []
+        out = []
+        for o in orders:
+            qty = getattr(o, 'qty', None)
+            out.append({
+                'symbol': o.symbol,
+                'side': str(getattr(o.side, 'value', o.side)).lower(),
+                'qty': float(qty) if qty is not None else 0.0,
+            })
+        return out
+
     def get_historical_data(self, symbol, days=250):
         """Get historical price data from Alpaca."""
         from alpaca.data.requests import StockBarsRequest

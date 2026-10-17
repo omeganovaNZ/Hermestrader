@@ -65,6 +65,13 @@ position under 5 shares rounded to zero and failed silently.)
 **Position cap: 10% of equity.** No satellite position above `max_position_pct`. An over-cap
 position is trimmed back to the cap. (Nash's own range is 5-10%.)
 
+A cap trim is placed with **no ladder rung**, so the ladder's fired-rung guard does not cover
+it — and while a cap-trim sell order is still pending, the position still looks over-cap on
+the next scan, so a second identical order would be placed. `position_cap_signals()` therefore
+skips any symbol that already has an open sell order. If the open-orders query fails it trims
+anyway (fail open): silently refusing to trim would disable the cap entirely. Pinned by
+`test_cap_trim_guard.py` (7 tests).
+
 **Add candidates.** A position 20% or more below its 52-week high is reported as an ADD
 candidate — weakness is a buying opportunity, not a trim. Report only; never auto-bought.
 

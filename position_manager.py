@@ -208,12 +208,29 @@ class PositionManager:
         equity = float(account['equity'])
         if equity <= 0:
             return []
+
+        # A cap trim is placed with no ladder rung, so the ladder's fired-rung
+        # guard does not cover it: while a cap-trim sell order is still pending
+        # the position still looks over-cap and a second identical order would
+        # be placed. Skip symbols that already have a pending sell order.
+        # If the query fails we trim as before (fail open) - silently refusing
+        # to trim would disable the cap.
+        try:
+            pending_sells = {o['symbol'] for o in self.alpaca.get_open_orders()
+                             if str(o.get('side', '')).lower() == 'sell'}
+        except Exception:
+            pending_sells = set()
+
         out = []
         for pos in self.alpaca.get_positions():
             mv = float(pos['market_value'])
             pct = mv / equity
             cap = self.trim_rules['max_position_pct']
             if pct > cap:
+                if pos['symbol'] in pending_sells:
+                    print(f"  {pos['symbol']}: over cap but a cap trim is already "
+                          f"pending - skipping")
+                    continue
                 target_mv = equity * cap
                 excess = mv - target_mv
                 qty = float(pos['qty'])
@@ -405,7 +422,7 @@ class PositionManager:
         print(f"\n{'-' * 80}\n  POSITION CAP\n{'-' * 80}")
         caps = self.position_cap_signals()
         if not caps:
-            print("  all positions within cap")
+            print("  no cap trims to place")
         for c in caps:
             print(f"  {c['symbol']}: {c['reason']}")
             if dry_run:
