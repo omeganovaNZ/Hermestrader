@@ -118,6 +118,8 @@ class AlpacaTrader:
         return {
             'cash': float(account.cash),
             'portfolio_value': float(account.portfolio_value),
+            'equity': float(account.equity),
+            'long_market_value': float(account.long_market_value),
             'buying_power': float(account.buying_power),
             'status': str(account.status),
         }
@@ -129,7 +131,10 @@ class AlpacaTrader:
         for pos in positions:
             result.append({
                 'symbol': pos.symbol,
-                'qty': int(pos.qty),
+                # float, not int: trims are fractional, so positions go fractional and
+                # int() would silently truncate them (5.6 shares -> 5), corrupting every
+                # downstream calculation.
+                'qty': float(pos.qty),
                 'avg_entry_price': float(pos.avg_entry_price),
                 'current_price': float(pos.current_price),
                 'market_value': float(pos.market_value),
