@@ -237,6 +237,36 @@ Note the risk-based term is now inert: risking 2% against a 10% stop implies a 2
 which the 8% cap always overrides. Effective risk per new position is 8% x 10% = **0.8% of the
 account**.
 
+### Portfolio-level rules, now in code (2026-10-17)
+
+Three things that existed only as prose are now enforced or surfaced.
+
+**1. The theme (sleeve) cap is enforced on the buy path.** `portfolio_rules.theme_cap_check_safe`
+runs before every buy and refuses any order that would push a theme past `MAX_THEME_PCT` (40%).
+The 40% AI-hardware ceiling was a sentence in this file that nothing read, which is exactly how
+that sleeve reached ~75% of long market value with 0.53 mean pairwise correlation inside it.
+Live: a $5,000 NVDA or TSM buy is **BLOCKED** (AI_HARDWARE is already 70.7% of equity); a
+$5,000 LLY buy is **ALLOWED** (BIOTECH_HEALTH would be 14.3%). It **fails closed** — if the
+check cannot be evaluated the buy is refused, because a limit that opens up whenever it fails
+is not a limit. Pinned by `test_portfolio_rules.py` (20 tests).
+
+*Limitation, stated plainly:* Alpaca's free tier provides no sector field, so `THEMES` is
+hand-maintained and **an unclassified symbol escapes the cap entirely**. A test asserts every
+currently-held symbol is classified, and unclassified exposure is printed on every scan so the
+gap stays visible rather than silent.
+
+**2. The thesis review surfaces weakness without acting on it.** `thesis_review()` flags
+positions held past 180 days and down 25%+ (`LONG_AND_DOWN`), and positions held a year or more
+and still below cost (`STALE`). It **never sells** — the owner's rule is that invested capital
+is not trimmed on weakness, so this closes the *visibility* gap, not the position. Before it,
+the system had no downside management at all: the profit trim needs +100%, the cap trim only
+sells winners, and `thesis_break_exit` is called by nothing. A position could fall 60% with
+zero response and zero comment.
+
+**3. Every cron job now delivers to a channel.** All seven were `deliver=local`, so output was
+written to disk and never surfaced — including two jobs that place real orders unattended. The
+only way to learn that anything had happened was to ask.
+
 ### Restoring the ladder's rungs — TESTED AND REFUTED (2026-10-17)
 
 The ladder was replaced by the profit-trim rule above, and the open question was whether its
