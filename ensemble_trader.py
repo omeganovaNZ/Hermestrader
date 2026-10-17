@@ -433,7 +433,13 @@ class EnsembleTrader:
         # Final decision. Require a minimum number of live layers before acting: the standing
         # rule is to act only on multiple independent confirming signals, so a score built
         # from one or two layers must not produce a trade.
-        if len(signals['layers_used']) < self.MIN_LIVE_LAYERS:
+        if ensemble_score != ensemble_score:
+            # NaN score: a component returned NaN. Without this the threshold comparisons all
+            # evaluate False and every name silently becomes HOLD, which is indistinguishable
+            # from a genuine no-signal - and it silently disables the ensemble-weakness trim.
+            signals['decision'] = 'HOLD'
+            signals['decision_note'] = 'held - ensemble score is NaN; a signal component is broken'
+        elif len(signals['layers_used']) < self.MIN_LIVE_LAYERS:
             signals['decision'] = 'HOLD'
             signals['decision_note'] = (
                 f"held - only {len(signals['layers_used'])} live layer(s), "

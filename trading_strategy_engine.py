@@ -271,6 +271,16 @@ def fetch_data(ticker: str, period: str = "5y", interval: str = "1d") -> pd.Data
     # Flatten multi-level columns if present
     if isinstance(data.columns, pd.MultiIndex):
         data.columns = data.columns.get_level_values(0)
+    # Drop rows with no Close. yfinance can return a trailing partial row for the most
+    # recent session (Volume present, OHLC NaN). Every iloc[-1] consumer then reads NaN,
+    # and a NaN momentum poisons the entire ensemble score into a silent all-HOLD.
+    if 'Close' in data.columns:
+        before = len(data)
+        data = data[data['Close'].notna()]
+        if len(data) != before:
+            print(f"  Dropped {before - len(data)} row(s) with no Close (partial trailing bar)")
+    if data.empty:
+        raise ValueError(f"No usable rows for {ticker} after dropping NaN Close")
     print(f"  Got {len(data)} rows from {data.index[0].strftime('%Y-%m-%d')} to {data.index[-1].strftime('%Y-%m-%d')}")
     return data
 
