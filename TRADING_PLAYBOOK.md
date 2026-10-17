@@ -22,13 +22,17 @@ Snapshot as of the last review (2026-10-17, paper account):
 | AMD | 16 | $548.41 | 9.3% | Originally a 1-month earnings trade (3 Nov print). |
 | PK | 317 | $15.96 | 5.6% | Hospitality REIT. "Defensive" label contradicts the hiking-rate macro view. |
 
-**Pending cap trims (orders placed 2026-10-17, not yet filled):** MRVL 55.61 sh,
-RKLB 69.20 sh, MU 4.02 sh, DDOG 5.89 sh — all to bring positions back to the 10% cap.
-Once filled, cash will rise by ~$21,110 and AI-hardware sleeve will drop to ~37.9% of long MV.
+**Cap trims were CANCELLED on 2026-10-17** (MRVL 55.61 sh, RKLB 69.20 sh, MU 4.02 sh,
+DDOG 5.89 sh). They had been placed to bring positions back to the 10% cap, but all four
+symbols were in LOSS and the rule is now *trim winners only* — enforcing the cap on a loser
+would have sold it at a loss and realised about -$846. Consequence: **cash stays at ~$5,543,
+not the ~$21,110 previously projected here, and the AI-hardware sleeve stays at ~75% rather
+than falling to ~37.9%.** All four positions remain over the cap until they turn green.
 
 **Portfolio risk (measured, not assumed):** annualised vol **49.0%** vs SPY 12.7% —
 3.9x the market. AI-hardware sleeve is ~75% of long market value against this
-playbook's own 40% ceiling, with mean pairwise correlation 0.53 inside it.
+playbook's own 40% ceiling, with mean pairwise correlation 0.53 inside it. Nothing in the
+code enforces that ceiling — it is prose only, which is precisely how it reached 75%.
 
 ## Strategy Summary
 
