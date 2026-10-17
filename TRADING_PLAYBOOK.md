@@ -38,11 +38,36 @@ playbook's own 40% ceiling, with mean pairwise correlation 0.53 inside it.
 4. Momentum (15%): 12-month return
 5. Volatility (10%): Low volatility preference
 
-### Trimming Rules (sell 20% when triggered)
+### Trimming Rules (sell 20% of the SHARES HELD when triggered)
+
+Any ONE of these fires a trim:
 - Return reaches 100% (milestone)
-- RSI > 70 (overbought)
-- >50% above 200 DMA (overextension)
+- RSI(14) > 70 (overbought)
+- >50% above 200 DMA (overextension) — **cannot fire; see below**
 - Ensemble score < -0.1 (weakness)
+
+Sizing: `round(qty * 0.20, 4)` — fractional, so it is a true 20% of shares held.
+(The old `int(qty * 0.20)` truncated: 20% of 7 shares became 1 share = 14.3%, and any
+position under 5 shares rounded to zero and silently failed.)
+
+**Cooldown: 30 days per symbol.** After a trim is placed, that symbol cannot be trimmed
+again for 30 days even if the conditions still hold. Conditions are still evaluated and
+reported during the window, so the position is revisited the moment it elapses. This
+replaced unbounded re-trimming, which would have compounded daily — five straight days of
+RSI > 70 would have removed 67% of a position (1 − 0.8^5).
+
+**Known dead rule:** the overextension check can never fire. `position_manager.py` fetches
+only `"6mo"` (~126 bars) but computes `rolling(200).mean()`, which yields NaN, so `dist_200`
+falls through to 0 and `0 > 0.50` is always False. Fixing it means fetching `"1y"` or more —
+but that ENABLES a rule that has never traded, so treat it as a strategy decision, not a
+bug fix.
+
+**This job places real orders.** Despite the name "Trim Signal Alert",
+`run_position_management` calls `execute_trim` → `place_sell_order`. It is not an alert.
+
+**Fill state is recorded, not assumed.** `execute_trim` now stores the real `order_id` and
+`order_status` and marks a trim `FILLED` only when Alpaca says so. The previous version
+logged every trim as sold — including two LLY trims that never filled.
 
 ### Risk Management
 - Max 20% per position

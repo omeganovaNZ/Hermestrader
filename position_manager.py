@@ -34,7 +34,8 @@ class PositionManager:
             'ensemble_threshold': -0.1,     # Sell 20% when ensemble score < -0.1
             'rsi_overbought': 70,           # Sell 20% when RSI > 70
             'overextension': 0.50,          # Sell 20% when >50% above 200 DMA
-            'trim_size': 0.20,             # Sell 20% of position
+            'trim_size': 0.20,             # Sell 20% of the SHARES HELD (fractional)
+            'cooldown_days': 30,           # no re-trim of the same symbol inside this window
         }
         
         # Track trimmed positions
@@ -52,6 +53,41 @@ class PositionManager:
                 return pos['unrealized_pl'] / (pos['avg_entry_price'] * pos['qty'])
         return None
     
+    def last_trim_date(self, symbol: str) -> Optional[datetime]:
+        """Most recent trim that was actually PLACED for symbol, or None.
+
+        Entries predating the fill_state field are ignored: the two historical LLY trims
+        were logged as sold but never filled, and must not start a cooldown.
+        """
+        dates = []
+        for entry in self.trim_log:
+            if entry.get('symbol') != symbol or entry.get('action') != 'TRIM':
+                continue
+            if entry.get('fill_state') not in ('FILLED', 'PENDING'):
+                continue
+            try:
+                dates.append(datetime.fromisoformat(entry['date']))
+            except (KeyError, ValueError):
+                continue
+        return max(dates) if dates else None
+
+    def in_cooldown(self, symbol: str) -> Tuple[bool, int]:
+        """(on_cooldown, days_remaining).
+
+        A symbol trimmed inside the cooldown window is not trimmed again, even though its
+        conditions may still hold. Once the window elapses it is re-evaluated from scratch
+        and can trim again if the conditions persist.
+        """
+        import math
+        last = self.last_trim_date(symbol)
+        if last is None:
+            return False, 0
+        window = timedelta(days=self.trim_rules['cooldown_days'])
+        elapsed = datetime.now() - last
+        if elapsed < window:
+            return True, max(1, math.ceil((window - elapsed).total_seconds() / 86400))
+        return False, 0
+
     def check_trim_signals(self, symbol: str, config_name: str) -> List[Dict]:
         """Check if a position should be trimmed."""
         signals = []
@@ -151,18 +187,28 @@ class PositionManager:
         if position is None:
             return False
         
-        shares_to_sell = int(position['qty'] * trim_pct)
-        if shares_to_sell == 0:
+        # Fractional, so the trim really is 20% of the shares held. int() truncated
+        # (20% of 7 shares -> 1 share = 14%) and zeroed any position under 5 shares.
+        shares_to_sell = round(float(position['qty']) * trim_pct, 4)
+        if shares_to_sell <= 0:
             return False
         
         try:
-            self.alpaca.place_sell_order(symbol, shares_to_sell)
+            order = self.alpaca.place_sell_order(symbol, shares_to_sell)
+            order_id = getattr(order, 'id', None)
+            order_status = str(getattr(order, 'status', 'unknown'))
+            # Only 'filled' means the shares actually left the account.
+            filled = order_status.lower().endswith('filled')
             
             self.trim_log.append({
                 'date': datetime.now().isoformat(),
                 'symbol': symbol,
                 'action': 'TRIM',
-                'shares_sold': shares_to_sell,
+                'order_id': str(order_id) if order_id else None,
+                'order_status': order_status,
+                'fill_state': 'FILLED' if filled else 'PENDING',
+                'shares_sold': shares_to_sell if filled else 0,
+                'shares_ordered': shares_to_sell,
                 'trim_pct': trim_pct,
                 'reason': reason,
                 'remaining_shares': position['qty'] - shares_to_sell,
@@ -222,6 +268,21 @@ class PositionManager:
                 
                 # Execute trim (only one trim per position per scan)
                 first_signal = signals[0]
+
+                # Cooldown gate. Conditions are still evaluated above so the report can say
+                # whether the reason still holds, but nothing is traded inside the window.
+                on_cooldown, days_left = self.in_cooldown(symbol)
+                if on_cooldown:
+                    print(f"    NOT TRIMMED: {symbol} is inside its "
+                          f"{self.trim_rules['cooldown_days']}-day cooldown "
+                          f"({days_left} day(s) left). Conditions still met: "
+                          f"{', '.join(s['type'] for s in signals)} - revisit after the window.")
+                    continue
+
+                # Never execute an advisory entry.
+                if first_signal.get('action') != 'TRIM':
+                    print(f"    NOT TRIMMED: {first_signal.get('reason', 'no action')}")
+                    continue
                 success = self.execute_trim(symbol, first_signal['trim_pct'], first_signal['reason'])
                 
                 if success:
