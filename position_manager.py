@@ -414,6 +414,7 @@ class PositionManager:
         print("\n  Outright exits are never automatic: a position is SOLD only when its")
         print("  thesis breaks, via thesis_break_exit(symbol, reason).")
         print("=" * 80)
+        self.save_ladder_state()
         return executed
 
 

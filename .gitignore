@@ -43,3 +43,4 @@ __pycache__/
 sharesies_*.json
 sharesies_*.md
 screener_results_prev.json
+trim_ladder_state.json

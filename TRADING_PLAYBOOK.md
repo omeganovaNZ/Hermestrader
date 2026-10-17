@@ -1,5 +1,5 @@
 # Alpaca Trading System — Complete Playbook
-# Last updated: 2026-10-17
+# Last updated: 2026-10-17 (revised)
 
 ## Current Portfolio
 
@@ -22,11 +22,12 @@ Snapshot as of the last review (2026-10-17, paper account):
 | AMD | 16 | $548.41 | 9.3% | Originally a 1-month earnings trade (3 Nov print). |
 | PK | 317 | $15.96 | 5.6% | Hospitality REIT. "Defensive" label contradicts the hiking-rate macro view. |
 
-Queued at the last review, filling Monday 19 Oct: XOM 27 sh, GEV 5 sh, GLD 10 sh
-(~5/5/4%, funded partly on margin).
+**Pending cap trims (orders placed 2026-10-17, not yet filled):** MRVL 55.61 sh,
+RKLB 69.20 sh, MU 4.02 sh, DDOG 5.89 sh — all to bring positions back to the 10% cap.
+Once filled, cash will rise by ~$21,110 and AI-hardware sleeve will drop to ~37.9% of long MV.
 
 **Portfolio risk (measured, not assumed):** annualised vol **49.0%** vs SPY 12.7% —
-3.9x the market. AI-hardware sleeve is ~58% of long market value against this
+3.9x the market. AI-hardware sleeve is ~75% of long market value against this
 playbook's own 40% ceiling, with mean pairwise correlation 0.53 inside it.
 
 ## Strategy Summary
@@ -241,13 +242,15 @@ every downstream calculation.
 | Trim Signal Alert | 8am weekdays | Alert when trim signals trigger |
 | Weekly Structural Trends Brief | 8am Mondays | Multi-year trend analysis |
 | Weekly Trading Performance Report | 8am Mondays | Performance summary |
-| 1-Month Trade Sell Reminder | **DEAD — fired 30 days early on 17 Oct** | Was: sell AMD/LLY on 16 Nov. Needs re-creating with a self-check. |
+| 1-Month Trade Exit (AMD/LLY) | 16 Nov 9am (one-shot, self-checking) | Job `55c95f224300d`. Refuses to act if fired early. Replaces the old DEAD job that misfired on 17 Oct. |
 
-**Cron warning:** on 2026-10-17 all seven trading jobs fired off-schedule in one burst
-(Saturday, no scheduled instant) — including the 16 Nov one-shot, which then placed sell
-orders. Root cause unresolved. Any job that can place an order MUST verify its own
-preconditions (date, market open, position present) before acting, and must refuse rather
-than comply when the premise does not hold.
+**Cron warning (2026-10-17):** all seven trading jobs fired off-schedule in one burst
+(Saturday, no scheduled instant). The old 16 Nov one-shot fired and placed sell orders;
+it has been replaced by job `55c95f224300d` (self-checking, correctly scheduled). Both
+order-placing jobs (Trim Signal Alert, Daily Alpaca Paper Trading Scan) have been hardened
+with STEP 0 precondition checks: weekend → refuse, market closed → refuse, no positions →
+refuse. The root cause of the misfire itself is unresolved, but the jobs now refuse to act
+when the premise does not hold.
 
 ## Key Files
 
