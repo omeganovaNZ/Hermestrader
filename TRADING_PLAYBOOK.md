@@ -170,6 +170,50 @@ otherwise take it as normal. Only the first rung is gated.
 - It is a modest improvement (+4.4% Panel A, -0.5% Panel B), not a breakthrough, and it does
   not beat holding on the growth names.
 
+---
+
+## THE TRIM RULE (current, 2026-10-17)
+
+Everything above this line describes the trim **ladder**, which was replaced. The user's rule,
+in their words: *"I only want to trim stocks which I've held longer than 6 months, have had an
+over 100% ROI — at which point, if they continue to grow in value, don't trim them. Only trim
+them when they've had 2-3 days of a decrease in shareprice (which doesn't match the trend) and
+then issue a 20% trim of the total stock holding of that particular stock. At no other time do I
+want to trim what has been invested."*
+
+A position is trimmed ONLY when ALL FOUR hold:
+
+| condition | test | parameter |
+|---|---|---|
+| held long enough | days since the first filled buy **> 183** | `min_hold_days` |
+| a real winner | ROI from the reference price **>= +100%** | `profit_trim_pct` |
+| a pullback | last **2** daily closes each lower than the prior | `pullback_days` |
+| still in the trend | price **above** its 200-day average | `trend_ma` |
+
+...and then it sells **20% of the shares held** (`profit_trim_size`).
+
+**Growth alone never trims.** A position that keeps rising is left to run — the trigger is a
+pullback, never a gain. That is the opposite of the ladder, which sold into strength at +50%.
+
+**The reference price re-bases to the trim price.** After a 20% trim the ROI reference becomes
+the price at which that trim was placed, so the next trim needs another +100% *from there*. That
+is what makes this one trim event per doubling rather than a cascade — without it, a position
+that had already doubled would re-trigger on every 2-day dip and be chewed away.
+
+**An unknown holding period never trims.** Alpaca's position object carries no open date, so the
+holding period is derived from the earliest filled BUY in order history
+(`alpaca.get_first_buy_date`). When that cannot be determined the rule refuses to trim, because
+"unknown" must not read as "old enough". Limitation: it is the earliest buy *ever* for that
+symbol, so a position that was fully sold and re-bought looks older than it is — that errs
+toward trimming too early rather than too late.
+
+**On the current book this means nothing trims for months.** Every position was bought
+2026-10-16, so the earliest any can be trimmed is ~2027-04-17, and only if it has also doubled
+and is pulling back while still above its 200-day average.
+
+Pinned by `test_profit_trim.py` (11 tests: each of the four conditions broken individually, the
+re-base behaviour, and the down-day counter).
+
 **A recommendation that was tested and REFUTED.** Raising the first rung outright to +100%
 (LADDER-100) was proposed and then tested. It gained more on Panel A (+0.596) but cost -0.074
 on Panel B, and cut "beats HOLD" on the holdings from 60% to 30%. On the evidence the change

@@ -1,31 +1,35 @@
 """
-Position Management — Tom Nash framework.
+Position Management — profit-trim framework.
 
 Trimming is risk management, not a reaction to weakness. "Selling is what you do when the
 business is broken. Trimming is what you do when the winner has grown."
 
-TRIM LADDER — gain measured from that symbol's ladder base price:
-    +50%  -> sell 10% of the shares held
-   +100%  -> sell 20%
-   +150%  -> sell 30%, then RE-BASE to the current price and climb again
+THE PROFIT-TRIM RULE (replaced the trim ladder, 2026-10-17).
+A position is trimmed ONLY when ALL FOUR of these hold:
 
-One rung fires per scan, lowest unfired first, so a gap-up climbs the ladder over
-successive scans rather than dumping every rung at once.
+  1. it has been held LONGER than 6 months
+  2. it is up +100% ROI from its reference price — the average entry price until the first
+     trim, then the price at which that trim was placed
+  3. the last 2 days both closed DOWN
+  4. it is still above its 200-day average, so the pullback is against the trend rather
+     than a trend break
 
-ADAPTIVE FIRST-RUNG GATE (added 2026-10-17, from a 20-name cross-validation — see
-TRADING_PLAYBOOK.md). The first rung's 10% trim is SKIPPED when the move is already
-parabolic: at the moment the price first reaches +50% of the ladder base, if
-`close / 50-day SMA >= parabolic_ext` (1.20), the rung is marked passed without selling and
-the position is allowed to run. The rationale is that a parabolic +50% is usually the early
-stage of a multi-bagger, whereas a choppy +50% is a rally worth harvesting — and the two
-cannot be told apart by price alone, only by extension. Without the gate the ladder sold
-into the early stage of every 5-15x move; with it, the cost on flat/choppy names is
-measurably zero (-0.006 mean). The rung is marked passed permanently, matching the design
-that was backtested.
+...and then it sells 20% of the shares held.
 
-Also enforced from the same framework:
+Growth alone never trims: a position that keeps rising is left to run. After a trim the
+reference re-bases to the trim price, so the next trim needs another +100% FROM THERE —
+one trim event per doubling, never a cascade. At no other time is invested capital trimmed.
+
+This replaced the +50%/+100%/+150% ladder and its adaptive parabolic gate. The old ladder
+trimmed at +50%, which sold into the early stage of the best performers; this rule leaves a
+position alone until it has doubled, and even then takes only 20% off, and only into a
+pullback rather than into strength.
+
+Also enforced:
   - max_position_pct — no position above this share of portfolio equity. An over-cap
-    position is trimmed down to the cap.
+    position is trimmed down to the cap, but WINNERS ONLY: an over-cap position that is
+    DOWN is left alone (it stays an add candidate), because enforcing the cap on a loser
+    sells it at a loss.
   - add_drawdown — a position this far below its 52-week high is an ADD candidate.
     Weakness is a buying opportunity, not a trim trigger.
 
@@ -59,15 +63,19 @@ class PositionManager:
         self.ensemble = EnsembleTrader()
 
         self.trim_rules = {
-            # (gain from ladder base, fraction of shares held to sell)
-            'ladder': [(0.50, 0.10), (1.00, 0.20), (1.50, 0.30)],
-            'reset_after_gain': 1.50,   # above the top rung, re-base and climb again
-            'max_position_pct': 0.10,   # Nash: 5-10% cap per satellite position
-            'add_drawdown': 0.20,       # add when 20% off the 52-week high
-            # Adaptive first-rung gate: skip the +50% trim when the move is already
-            # parabolic, i.e. close / (parabolic_ma-day SMA) >= parabolic_ext.
-            'parabolic_ma': 50,
-            'parabolic_ext': 1.20,
+            # THE profit-trim rule (2026-10-17). One rung, one trigger, one size:
+            #   +100% ROI, held LONGER than 6 months, on a 2-day pullback, still above
+            #   the 200-day average.
+            # Nothing else ever trims invested capital. A trim re-bases the ROI reference
+            # to the trim price, so the next trim needs another +100% from THERE - one
+            # trim event per doubling, never a cascade.
+            'profit_trim_pct': 1.00,     # +100% ROI from the reference price
+            'profit_trim_size': 0.20,    # sell 20% of shares held
+            'min_hold_days': 183,        # held LONGER than 6 months
+            'pullback_days': 2,          # consecutive down days that trigger the trim
+            'trend_ma': 200,             # the pullback must still be above this average
+            'max_position_pct': 0.10,    # cap trim (Winners Only) - Nash 5-10%
+            'add_drawdown': 0.20,        # add when 20% off the 52-week high
         }
 
         self.trim_log = []
@@ -115,55 +123,68 @@ class PositionManager:
         entry.setdefault('rungs_fired', [])
         return entry
 
-    def next_rung(self, symbol: str, avg_entry_price: float, current_price: float) -> Dict:
-        """Describe where this position sits on its ladder. Read-only."""
+    def profit_trim_status(self, symbol: str, avg_entry_price: float,
+                           current_price: float) -> Dict:
+        """Where this position sits against the single +100% profit-trim rung. Read-only.
+
+        `base_price` is the ROI reference: the average entry price until the first trim,
+        then the price at which that trim was placed. So `gain_from_base` is the ROI that
+        matters, and it resets to 0 on every trim.
+        """
         entry = self.ladder_entry(symbol, avg_entry_price)
         base = float(entry['base_price'])
         gain = (current_price / base) - 1 if base > 0 else 0.0
-        fired = entry['rungs_fired']
-        # Self-heal: a fully-fired ladder should already have re-based when the top rung was
-        # placed. If it is still saturated (stale state, or a trim that never got recorded),
-        # start a fresh climb from the current price instead of sitting stuck forever.
-        if all(g in fired for g, _ in self.trim_rules['ladder']):
-            entry['base_price'] = float(current_price)
-            entry['rungs_fired'] = []
-            entry['rebased_at'] = datetime.now().isoformat()
-            base, gain, fired = float(current_price), 0.0, []
-        pending = [(g, p) for g, p in self.trim_rules['ladder'] if g not in fired]
+        target = float(self.trim_rules['profit_trim_pct'])
         return {
             'base_price': base,
             'gain_from_base': gain,
-            'rungs_fired': list(fired),
-            'next_rung': pending[0] if pending else None,
-            'next_rung_distance': (pending[0][0] - gain) if pending else None,
-            'all_rungs_fired': not pending,
+            'target': target,
+            'distance_to_trim': target - gain,
+            'eligible_on_gain': gain >= target,
+            'trim_count': int(entry.get('trim_count', 0)),
+            'last_trim_price': entry.get('last_trim_price'),
         }
 
-    def ma_extension(self, symbol: str, current_price: float) -> Optional[float]:
-        """How extended the move already is: current_price / N-day SMA.
+    def _daily_closes(self, symbol: str) -> Optional[List[float]]:
+        """Completed daily closes, oldest first. None when they cannot be fetched.
 
-        Returns None when the average cannot be computed (no data, or a non-positive
-        average); the caller then treats the gate as untriggered and fires the rung
-        normally, since refusing to trim is the riskier failure.
+        Sourced from Alpaca, not yfinance: yfinance intermittently returns a trailing
+        partial bar (Volume present, OHLC NaN), which is exactly the kind of silent
+        corruption that must never reach a trim decision.
         """
-        ma = int(self.trim_rules.get('parabolic_ma', 50))
         try:
-            data = fetch_data(symbol, "1y")
-            sma = float(data['Close'].rolling(ma).mean().iloc[-1])
-            if sma <= 0:
+            data = self.alpaca.get_historical_data(symbol, days=400)
+            if data is None or 'Close' not in data:
                 return None
-            return float(current_price) / sma
+            closes = [float(x) for x in data['Close'].tolist() if x == x]   # drop NaN
+            return closes or None
         except Exception:
             return None
+
+    def consecutive_down_days(self, closes: List[float]) -> int:
+        """How many days in a row the close has fallen, counting back from the latest."""
+        n = 0
+        for i in range(len(closes) - 1, 0, -1):
+            if closes[i] < closes[i - 1]:
+                n += 1
+            else:
+                break
+        return n
 
     # ── trims ───────────────────────────────────────────────────────────────────────
 
     def check_trim_signals(self, symbol: str, config_name: Optional[str] = None) -> List[Dict]:
-        """Ladder rungs only. A crossed-but-unfired rung is the sole trim trigger.
+        """THE profit-trim rule. All four conditions must hold, or nothing is trimmed:
 
-        The first rung is subject to the adaptive parabolic gate: if the move is already
-        extended when the price first reaches +50% of the base, the rung is marked passed
-        without selling and the position is allowed to run.
+          1. held LONGER than 6 months
+          2. +100% ROI from the reference price (cost basis, then the last trim price)
+          3. the last 2 days both closed DOWN
+          4. still above the 200-day average, so the pullback is against the trend
+             rather than a trend break
+
+        Growth alone never trims - a position that keeps rising is left to run. This is
+        the ONLY thing that trims invested capital; the position cap is a separate rule
+        that only ever trims winners.
         """
         signals = []
         position = next((p for p in self.alpaca.get_positions() if p['symbol'] == symbol), None)
@@ -173,31 +194,70 @@ class PositionManager:
         try:
             avg_entry = float(position['avg_entry_price'])
             current = float(position['current_price'])
-            st = self.next_rung(symbol, avg_entry, current)
-            entry = self.ladder_entry(symbol, avg_entry)
+            qty = float(position['qty'])
 
-            for idx, (gain_rung, trim_pct) in enumerate(self.trim_rules['ladder']):
-                if gain_rung in st['rungs_fired']:
-                    continue
-                if st['gain_from_base'] >= gain_rung:
-                    if idx == 0:
-                        ext = self.ma_extension(symbol, current)
-                        if ext is not None and ext >= float(self.trim_rules['parabolic_ext']):
-                            entry['rungs_fired'].append(gain_rung)
-                            self.save_ladder_state()
-                            break
-                    signals.append({
-                        'type': f'LADDER_{int(gain_rung * 100)}',
-                        'action': 'TRIM',
-                        'trim_pct': trim_pct,
-                        'rung': gain_rung,
-                        'gain_from_base': st['gain_from_base'],
-                        'base_price': st['base_price'],
-                        'reason': (f'+{st["gain_from_base"]:.0%} from ladder base '
-                                   f'${st["base_price"]:,.2f} crossed the +{gain_rung:.0%} rung '
-                                   f'- trim {trim_pct:.0%}'),
-                    })
-                    break   # one rung per scan, lowest unfired first
+            # 1. holding period. "Unknown" must NOT read as "old enough" - trimming a
+            # position held under 6 months is the one thing this rule forbids.
+            opened = self.alpaca.get_first_buy_date(symbol)
+            if opened is None:
+                print(f"  {symbol}: holding period unknown - not trimming")
+                return signals
+            now = datetime.now(opened.tzinfo) if opened.tzinfo else datetime.now()
+            held_days = (now - opened).days
+            min_days = int(self.trim_rules['min_hold_days'])
+            if held_days <= min_days:
+                return signals
+
+            # 2. the ROI that matters
+            st = self.profit_trim_status(symbol, avg_entry, current)
+            target = float(self.trim_rules['profit_trim_pct'])
+            if st['gain_from_base'] < target:
+                return signals
+
+            # 3. a pullback: consecutive down days
+            closes = self._daily_closes(symbol)
+            ma_days = int(self.trim_rules['trend_ma'])
+            if closes is None or len(closes) < ma_days:
+                print(f"  {symbol}: not enough price history to judge the pullback "
+                      f"- not trimming")
+                return signals
+            down = self.consecutive_down_days(closes)
+            if down < int(self.trim_rules['pullback_days']):
+                return signals
+
+            # 4. the pullback must not match the trend: still above the 200-day average
+            sma = sum(closes[-ma_days:]) / ma_days
+            if current <= sma:
+                print(f"  {symbol}: {down} down days but below its {ma_days}-day average "
+                      f"(${sma:,.2f}) - a trend break, not a pullback - not trimming")
+                return signals
+
+            # never stack a second order while one is pending
+            try:
+                pending = {o['symbol'] for o in self.alpaca.get_open_orders()
+                           if str(o.get('side', '')).lower() == 'sell'}
+            except Exception:
+                pending = set()
+            if symbol in pending:
+                print(f"  {symbol}: a sell order is already pending - not trimming")
+                return signals
+
+            size = float(self.trim_rules['profit_trim_size'])
+            signals.append({
+                'type': 'PROFIT_TRIM_100',
+                'action': 'TRIM',
+                'trim_pct': size,
+                'rung': target,
+                'gain_from_base': st['gain_from_base'],
+                'base_price': st['base_price'],
+                'held_days': held_days,
+                'down_days': down,
+                'sma200': round(sma, 2),
+                'shares_to_sell': round(qty * size, 4),
+                'reason': (f'+{st["gain_from_base"]:.0%} ROI from ${st["base_price"]:,.2f}, '
+                           f'held {held_days}d, {down} down days but still above the '
+                           f'{ma_days}-day (${sma:,.2f}) - trim {size:.0%} of shares held'),
+            })
         except Exception:
             return signals
         return signals
@@ -327,16 +387,20 @@ class PositionManager:
             with open(self.trim_log_path, 'w') as f:
                 json.dump(self.trim_log, f, indent=2)
 
-            # Mark the rung fired as soon as the order is PLACED, so it cannot re-fire while
-            # pending. A re-base starts the ladder over from the current price.
+            # Re-base the ROI reference to the price at which this trim was PLACED, so it
+            # cannot re-fire while the order is pending. The next trim therefore needs
+            # another +100% from HERE - that is what makes this one trim event per
+            # doubling instead of a cascade.
             if rung is not None:
                 entry = self.ladder_entry(symbol, float(position['avg_entry_price']))
                 if rung not in entry['rungs_fired']:
                     entry['rungs_fired'].append(rung)
+                entry['trim_count'] = int(entry.get('trim_count', 0)) + 1
+                entry['last_trim_price'] = float(position['current_price'])
+                entry['last_trim_at'] = datetime.now().isoformat()
                 if re_base:
                     entry['base_price'] = float(position['current_price'])
                     entry['rungs_fired'] = []
-                    entry['rebased_at'] = datetime.now().isoformat()
                 self.save_ladder_state()
             return True
         except Exception:
@@ -376,13 +440,17 @@ class PositionManager:
 
     def run_position_management(self, dry_run: bool = False) -> int:
         print("=" * 80)
-        print("  POSITION MANAGEMENT — Tom Nash Trim Ladder")
+        print("  POSITION MANAGEMENT — Profit-Trim Rule")
         if dry_run:
             print("  *** DRY RUN — no orders will be placed ***")
         print(f"  Date: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
-        ladder = " | ".join(f"+{g:.0%}->{p:.0%}" for g, p in self.trim_rules['ladder'])
-        print(f"  Ladder: {ladder}, then re-base and climb again")
-        print(f"  Position cap: {self.trim_rules['max_position_pct']:.0%} of equity")
+        r = self.trim_rules
+        print(f"  Trim when ALL hold: +{r['profit_trim_pct']:.0%} ROI, held > "
+              f"{r['min_hold_days']}d, {r['pullback_days']} down days, still above the "
+              f"{r['trend_ma']}-day -> sell {r['profit_trim_size']:.0%} of shares held")
+        print(f"  Nothing else trims invested capital. The reference re-bases to the trim "
+              f"price, so the next trim needs another +{r['profit_trim_pct']:.0%} from there.")
+        print(f"  Position cap: {r['max_position_pct']:.0%} of equity (winners only)")
         print("=" * 80)
 
         account = self.alpaca.get_account()
@@ -391,43 +459,51 @@ class PositionManager:
         print(f"\n  Cash: ${float(account['cash']):,.2f} | Equity: ${equity:,.2f}")
         print(f"  Positions: {len(positions)}")
 
-        print(f"\n  {'sym':6}{'qty':>9}{'entry':>11}{'base':>11}{'now':>10}{'gain':>9}"
-              f"{'next rung':>14}{'% eq':>8}")
+        print(f"\n  {'sym':6}{'qty':>9}{'entry':>11}{'base':>11}{'now':>10}{'ROI':>9}"
+              f"{'to trim':>10}{'held':>7}{'% eq':>8}")
         for pos in sorted(positions, key=lambda p: -float(p['market_value'])):
             sym = pos['symbol']
             avg = float(pos['avg_entry_price'])
             now = float(pos['current_price'])
-            st = self.next_rung(sym, avg, now)
-            nxt = f"+{st['next_rung'][0]:.0%}->{st['next_rung'][1]:.0%}" if st['next_rung'] else "all fired"
+            st = self.profit_trim_status(sym, avg, now)
+            held = "?"
+            try:
+                opened = self.alpaca.get_first_buy_date(sym)
+                if opened is not None:
+                    ref = datetime.now(opened.tzinfo) if opened.tzinfo else datetime.now()
+                    held = f"{(ref - opened).days}d"
+            except Exception:
+                pass
             print(f"  {sym:6}{float(pos['qty']):>9.2f}{avg:>11,.2f}{st['base_price']:>11,.2f}"
-                  f"{now:>10,.2f}{st['gain_from_base']:>+9.1%}{nxt:>14}"
+                  f"{now:>10,.2f}{st['gain_from_base']:>+9.1%}"
+                  f"{st['distance_to_trim']:>+10.0%}{held:>7}"
                   f"{float(pos['market_value'])/equity:>8.1%}")
 
         executed = 0
 
-        print(f"\n{'-' * 80}\n  LADDER TRIMS\n{'-' * 80}")
-        any_ladder = False
+        print(f"\n{'-' * 80}\n  PROFIT TRIMS (+100% ROI on a 2-day pullback)\n{'-' * 80}")
+        any_trim = False
         for pos in positions:
             sym = pos['symbol']
             signals = self.check_trim_signals(sym)
             if not signals:
                 continue
-            any_ladder = True
+            any_trim = True
             s = signals[0]
             print(f"\n  {sym}: {s['reason']}")
             if dry_run:
                 print(f"    WOULD TRIM: {s['trim_pct']:.0%} of shares held "
-                      f"({round(float(pos['qty']) * s['trim_pct'], 4):,.2f} sh)")
+                      f"({s['shares_to_sell']:,.2f} sh)")
                 continue
-            if self.execute_trim(sym, s['trim_pct'], s['reason'], rung=s['rung'],
-                                 re_base=(s['rung'] >= self.trim_rules['reset_after_gain'])):
-                extra = " (re-based - ladder restarts from here)" if s['rung'] >= self.trim_rules['reset_after_gain'] else ""
-                print(f"    TRIMMED: ordered {s['trim_pct']:.0%} of shares held{extra}")
+            if self.execute_trim(sym, s['trim_pct'], s['reason'], rung=s['rung'], re_base=True):
+                print(f"    TRIMMED: ordered {s['trim_pct']:.0%} of shares held "
+                      f"({s['shares_to_sell']:,.2f} sh) - reference re-based to "
+                      f"${s['base_price']:,.2f}, so the next trim needs +100% from there")
                 executed += 1
             else:
                 print("    TRIM FAILED")
-        if not any_ladder:
-            print("  no rung crossed")
+        if not any_trim:
+            print("  nothing eligible (needs +100% ROI, held >6 months, and 2 down days)")
 
         print(f"\n{'-' * 80}\n  POSITION CAP\n{'-' * 80}")
         caps = self.position_cap_signals()

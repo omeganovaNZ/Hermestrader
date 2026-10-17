@@ -167,6 +167,36 @@ class AlpacaTrader:
             })
         return out
 
+    def get_first_buy_date(self, symbol):
+        """Earliest FILLED buy for symbol, or None. Used for the holding-period rule.
+
+        Alpaca's position object carries no open date, so the holding period has to be
+        derived from order history. Returns a timezone-aware datetime, or None when it
+        cannot be determined - callers must treat None as "unknown" and NOT as "old
+        enough", since trimming a position held for less than 6 months is the one thing
+        the profit-trim rule forbids.
+
+        Limitation: this is the earliest buy ever filled for the symbol. If a position
+        was fully sold and later re-bought, the returned date is older than the current
+        holding. That errs toward allowing a trim too early rather than blocking one.
+        """
+        from alpaca.trading.requests import GetOrdersRequest
+        from alpaca.trading.enums import QueryOrderStatus
+
+        orders = self.trading_client.get_orders(
+            filter=GetOrdersRequest(status=QueryOrderStatus.CLOSED, symbols=[symbol],
+                                    limit=500))
+        if not isinstance(orders, (list, tuple)):
+            return None
+        dates = []
+        for o in orders:
+            if str(getattr(o.side, 'value', o.side)).lower() != 'buy':
+                continue
+            filled = getattr(o, 'filled_at', None)
+            if filled is not None:
+                dates.append(filled)
+        return min(dates) if dates else None
+
     def get_historical_data(self, symbol, days=250):
         """Get historical price data from Alpaca."""
         from alpaca.data.requests import StockBarsRequest
