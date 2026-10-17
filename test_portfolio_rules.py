@@ -86,9 +86,9 @@ def test_a_buy_in_another_theme_is_allowed_even_when_one_is_over():
     assert 'BIOTECH_HEALTH' in why
 
 
-def test_unclassified_symbol_passes_and_says_so():
+def test_unclassified_symbol_fails_closed():
     ok, why = pr.theme_cap_check('ZZZZ', 50_000, [], EQUITY)
-    assert ok is True
+    assert ok is False, "unclassified symbols must be refused (fail CLOSED)"
     assert 'unclassified' in why.lower()
 
 
@@ -130,10 +130,11 @@ def test_long_and_only_slightly_down_is_not_flagged():
     assert pr.thesis_review(p, {'MRVL': 200}) == []
 
 
-def test_deeply_down_but_recent_is_not_flagged():
-    """Age matters: a 30% drawdown three weeks in is noise, not a stale thesis."""
+def test_deeply_down_but_recent_is_still_flagged():
+    """A 30% drawdown is always flagged, even if fresh — a crash deserves attention."""
     p = [pos('MRVL', 100, 200, 140)]
-    assert pr.thesis_review(p, {'MRVL': 21}) == []
+    revs = pr.thesis_review(p, {'MRVL': 21})
+    assert len(revs) == 1 and revs[0]['flag'] == 'LONG_AND_DOWN'
 
 
 def test_stale_wins_over_long_and_down():
@@ -182,9 +183,11 @@ def test_cap_boundary_at_exactly_40pct():
 
 
 def test_review_window_boundary_at_exactly_180_days():
+    # With the updated logic, any position down >=25% is flagged regardless of age.
+    # The 180-day window only matters for the STALE flag (held a year+ and still down).
     p = [pos('MRVL', 100, 200, 140)]                                       # -30%
     assert len(pr.thesis_review(p, {'MRVL': 180})) == 1, "180d is in-window"
-    assert pr.thesis_review(p, {'MRVL': 179}) == [], "179d is not"
+    assert len(pr.thesis_review(p, {'MRVL': 179})) == 1, "179d is also flagged (down >=25%)"
 
 
 def test_drawdown_boundary_at_exactly_25pct():

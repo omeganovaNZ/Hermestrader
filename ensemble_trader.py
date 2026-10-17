@@ -218,7 +218,11 @@ class SentimentFilter:
                 score = 0.5
             else:
                 score = positive_count / (positive_count + negative_count + 1)
-                if score > 0.6:
+                if positive_count == 0 and negative_count == 0:
+                    # No keyword matches — not negative, just no signal
+                    sentiment = "NEUTRAL"
+                    score = 0.5
+                elif score > 0.6:
                     sentiment = "POSITIVE"
                 elif score < 0.4:
                     sentiment = "NEGATIVE"
@@ -262,43 +266,7 @@ class SentimentFilter:
             }
 
 
-class VolatilityTargeting:
-    """Inverse volatility position sizing."""
-    
-    def __init__(self, target_vol: float = 0.15):
-        self.target_vol = target_vol
-    
-    def calculate_weights(self, symbols: List[str]) -> Dict[str, float]:
-        """Calculate inverse volatility weights."""
-        volatilities = {}
-        
-        for symbol in symbols:
-            try:
-                data = fetch_data(symbol, "6mo")
-                if data is None or len(data) < 20:
-                    continue
-                daily_returns = data['Close'].pct_change().dropna()
-                vol = daily_returns.std() * np.sqrt(252)
-                volatilities[symbol] = max(vol, 0.01)  # Avoid division by zero
-            except:
-                continue
-        
-        if not volatilities:
-            return {s: 1.0 / len(symbols) for s in symbols}
-        
-        # Inverse volatility weights
-        inv_vols = {s: 1.0 / v for s, v in volatilities.items()}
-        total_inv_vol = sum(inv_vols.values())
-        
-        weights = {s: inv_vols[s] / total_inv_vol for s in volatilities}
-        
-        # Scale to target volatility
-        portfolio_vol = np.sqrt(sum((weights[s] * volatilities[s]) ** 2 for s in weights))
-        if portfolio_vol > 0:
-            scale = min(1.0, self.target_vol / portfolio_vol)
-            weights = {s: w * scale for s, w in weights.items()}
-        
-        return weights
+
 
 
 class EnsembleTrader:
@@ -309,7 +277,7 @@ class EnsembleTrader:
         self.ml_predictor = LightGBMPredictor()
         self._ml_trained = {}          # symbol -> bool; train once per run
         self.sentiment_filter = SentimentFilter()
-        self.volatility_targeting = VolatilityTargeting(target_vol=0.15)
+
         
         # Signal weights (from research)
         self.MIN_LIVE_LAYERS = 3   # refuse to act on fewer live signal layers than this
@@ -367,8 +335,12 @@ class EnsembleTrader:
         try:
             data = fetch_data(symbol, "1y")
             if data is not None and len(data) > 0:
-                momentum = (data['Close'].iloc[-1] / data['Close'].iloc[0]) - 1
-                signals['momentum'] = momentum
+                first_close = data['Close'].iloc[0]
+                if first_close > 0 and first_close == first_close:  # not NaN
+                    momentum = (data['Close'].iloc[-1] / first_close) - 1
+                    signals['momentum'] = momentum
+                else:
+                    signals['momentum'] = 0
             else:
                 signals['momentum'] = 0
         except:
@@ -382,9 +354,9 @@ class EnsembleTrader:
                 vol = daily_returns.std() * np.sqrt(252)
                 signals['volatility'] = vol
             else:
-                signals['volatility'] = 0.5
+                signals['volatility'] = 0.25  # fallback: neutral (maps to vol_score=0)
         except:
-            signals['volatility'] = 0.5
+            signals['volatility'] = 0.25  # fallback: neutral (maps to vol_score=0)
         
         # Calculate ensemble score
         ensemble_score = 0
@@ -416,12 +388,16 @@ class EnsembleTrader:
         # while still counting in the denominator, silently diluting the score toward zero.
         # Renormalise over the layers that actually produced a value so the score is an
         # unbiased estimate on the original scale.
+        # A layer is "live" only if it produced a real value, not a fallback.
+        # Volatility uses 0.25 as a fallback (maps to vol_score=0, neutral), so
+        # check if the computed vol is the fallback value.
+        _vol_is_fallback = (signals['volatility'] == 0.25)
         _live = {
             'technical': signals['technical'] != 0,
             'ml_prediction': signals.get('ml_available', False),
             'sentiment': signals.get('sentiment_available', False),
             'momentum': True,        # always measurable
-            'volatility': True,      # always measurable
+            'volatility': not _vol_is_fallback,
         }
         signals['layers_used'] = sorted(layer for layer, ok in _live.items() if ok)
         _live_weight = sum(w for k, w in self.signal_weights.items() if _live.get(k))
@@ -433,12 +409,12 @@ class EnsembleTrader:
         # Final decision. Require a minimum number of live layers before acting: the standing
         # rule is to act only on multiple independent confirming signals, so a score built
         # from one or two layers must not produce a trade.
-        if ensemble_score != ensemble_score:
-            # NaN score: a component returned NaN. Without this the threshold comparisons all
-            # evaluate False and every name silently becomes HOLD, which is indistinguishable
-            # from a genuine no-signal - and it silently disables the ensemble-weakness trim.
+        if ensemble_score != ensemble_score or ensemble_score in (float('inf'), float('-inf')):
+            # NaN or Inf score: a component returned a bad value. Without this the threshold
+            # comparisons all evaluate False and every name silently becomes HOLD, which is
+            # indistinguishable from a genuine no-signal.
             signals['decision'] = 'HOLD'
-            signals['decision_note'] = 'held - ensemble score is NaN; a signal component is broken'
+            signals['decision_note'] = 'held - ensemble score is invalid (NaN or Inf); a signal component is broken'
         elif len(signals['layers_used']) < self.MIN_LIVE_LAYERS:
             signals['decision'] = 'HOLD'
             signals['decision_note'] = (

@@ -16,19 +16,6 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from trading_strategy_engine import fetch_data
 
 
-# Sectors with structural growth tailwinds
-GROWTH_SECTORS = [
-    "Semiconductor", "AI", "Cloud", "Cybersecurity", "Biotech",
-    "Genomics", "Immunotherapy", "Optical", "Power", "Memory",
-    "Data Center", "Space", "Renewable Energy", "Fintech"
-]
-
-# Keywords that indicate supply constraints or strong demand
-DEMAND_KEYWORDS = [
-    "sold out", "backlog", "capacity", "supply constraint", "shortage",
-    "record revenue", "guidance raised", "earnings beat", "expansion",
-    "partnership", "contract", "launch", "approval", "breakthrough"
-]
 
 
 def calculate_technical_score(data: pd.DataFrame) -> Dict:
@@ -113,14 +100,18 @@ def calculate_technical_score(data: pd.DataFrame) -> Dict:
         score += 5  # Oversold but could be value trap
     
     # Distance from 200 DMA score (15 points)
-    if 10 <= dist_200 <= 40:
-        score += 15
-    elif 0 <= dist_200 < 10:
-        score += 10
-    elif 40 < dist_200 <= 60:
-        score += 5
-    elif dist_200 > 60:
-        score += 0  # Too extended
+    # If sma_200 is NaN (insufficient data), dist_200 defaults to 0, which would
+    # award 10 free points. Guard against this: only score if sma_200 is valid.
+    if sma_200 > 0 and sma_200 == sma_200:  # valid sma_200
+        if 10 <= dist_200 <= 40:
+            score += 15
+        elif 0 <= dist_200 < 10:
+            score += 10
+        elif 40 < dist_200 <= 60:
+            score += 5
+        elif dist_200 > 60:
+            score += 0  # Too extended
+    # else: insufficient data for 200-DMA, no points awarded
     
     # Momentum score (15 points)
     if return_3m > 20 and return_3m < 100:

@@ -100,8 +100,12 @@ class AlpacaTrader:
             with open(self.trades_log_path, 'r') as f:
                 self.trades_log = json.load(f)
         
-        # Risk tolerance: Higher risk OK, but require multiple confirming signals
-        self.min_confirming_signals = 3  # Need 3+ signals to enter
+        # Risk tolerance: Higher risk OK, but require multiple confirming signals.
+        # NOTE: this is NOT currently enforced — the buy path uses a single signal
+        # from MarketAwareHybridStrategy. The ensemble screener (ensemble_trader.py)
+        # is a separate tool that generates ensemble_score but is not wired into
+        # this buy path. This attribute is kept as documentation of intent.
+        self.min_confirming_signals = 3
         # Cap on a NEW position's share of account value. Kept BELOW the trim cap
         # (position_manager.max_position_pct = 0.10) so a position is never born over-cap
         # and has room to rise before the cap binds. This attribute used to be dead: it said
@@ -290,11 +294,11 @@ class AlpacaTrader:
         """
         quote = self.get_quote(symbol)
         if quote is None:
-            return 0
+            return 0, 0
 
         price = float(quote.ask_price) if hasattr(quote, 'ask_price') else float(quote)
         if price <= 0:
-            return 0
+            return 0, 0
 
         # Risk-based sizing: risking risk_pct of the account against a 10% stop.
         risk_amount = account_value * risk_pct
@@ -313,12 +317,14 @@ class AlpacaTrader:
         from alpaca.trading.requests import MarketOrderRequest
         from alpaca.trading.enums import OrderSide, TimeInForce
         
+        import uuid
         if price is None:
             order_data = MarketOrderRequest(
                 symbol=symbol,
                 qty=shares,
                 side=OrderSide.BUY,
                 time_in_force=TimeInForce.DAY,
+                client_order_id=str(uuid.uuid4()),
             )
         else:
             from alpaca.trading.requests import LimitOrderRequest
@@ -328,6 +334,7 @@ class AlpacaTrader:
                 side=OrderSide.BUY,
                 time_in_force=TimeInForce.DAY,
                 limit_price=price,
+                client_order_id=str(uuid.uuid4()),
             )
         
         order = self.trading_client.submit_order(order_data)
@@ -338,11 +345,13 @@ class AlpacaTrader:
         from alpaca.trading.requests import MarketOrderRequest
         from alpaca.trading.enums import OrderSide, TimeInForce
         
+        import uuid
         order_data = MarketOrderRequest(
             symbol=symbol,
             qty=shares,
             side=OrderSide.SELL,
             time_in_force=TimeInForce.DAY,
+            client_order_id=str(uuid.uuid4()),
         )
         
         order = self.trading_client.submit_order(order_data)
@@ -401,6 +410,15 @@ class AlpacaTrader:
             if signal['signal'] == 1:  # Buy signal
                 if existing_position is None:
                     # No position, buy
+                    # Check for pending buy orders to avoid duplicates
+                    try:
+                        pending_buys = {o['symbol'] for o in self.get_open_orders()
+                                        if str(o.get('side', '')).lower() == 'buy'}
+                        if symbol in pending_buys:
+                            print(f"  BUY {symbol}: Skipped (buy order already pending)")
+                            continue
+                    except Exception:
+                        pass
                     shares, price = self.calculate_position_size(
                         symbol, signal['signal'], account['portfolio_value']
                     )
@@ -449,6 +467,12 @@ class AlpacaTrader:
                     
             elif signal['signal'] == -1:  # Sell signal
                 if existing_position is not None:
+                    # WINNERS ONLY. The owner's rule is that invested capital is never
+                    # trimmed on weakness. A sell signal on a loser is NOT acted on.
+                    pl = float(existing_position.get('unrealized_pl', 0))
+                    if pl <= 0:
+                        print(f"  SELL {symbol}: BLOCKED - position is down {pl:,.2f} - not selling a loser")
+                        continue
                     try:
                         self.place_sell_order(symbol, existing_position['qty'])
                         print(f"  SELL {symbol}: {existing_position['qty']} shares")

@@ -55,15 +55,18 @@ def test_cap_scales_with_account_value():
 def test_zero_or_negative_price_returns_zero():
     t = trader()
     t.get_quote = lambda sym: 0.0
-    assert t.calculate_position_size('TEST', 1, 100_000.0) == 0
+    shares, price = t.calculate_position_size('TEST', 1, 100_000.0)
+    assert shares == 0 and price == 0
     t.get_quote = lambda sym: -5.0
-    assert t.calculate_position_size('TEST', 1, 100_000.0) == 0
+    shares, price = t.calculate_position_size('TEST', 1, 100_000.0)
+    assert shares == 0 and price == 0
 
 
 def test_missing_quote_returns_zero():
     t = trader()
     t.get_quote = lambda sym: None
-    assert t.calculate_position_size('TEST', 1, 100_000.0) == 0
+    shares, price = t.calculate_position_size('TEST', 1, 100_000.0)
+    assert shares == 0 and price == 0
 
 
 if __name__ == "__main__":

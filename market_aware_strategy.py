@@ -19,7 +19,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from trading_strategy_engine import (
-    BacktestEngine, MeanReversionStrategy, fetch_data, Trade
+    BacktestEngine, MeanReversionStrategy, fetch_data
 )
 
 
@@ -36,12 +36,6 @@ MARKET_CONFIGS = {
         "mr_num_std": 2.0,
         "trend_ma": 50,
         "atr_lookback": 14,
-        "stop_loss_atr_mult": 2.5,
-        "trailing_stop_atr_mult": 2.5,
-        "max_position_pct": 0.15,
-        "earnings_pause_days": 2,
-        "volatility_filter_percentile": 90,
-        "transition_filter": True,  # Don't trade in transition — wait for confirmation
     },
     "KOREA": {
         "region": "Korea",
@@ -53,13 +47,6 @@ MARKET_CONFIGS = {
         "mr_num_std": 2.5,  # Wider bands for fat tails
         "trend_ma": 50,
         "atr_lookback": 14,
-        "stop_loss_atr_mult": 1.5,  # Tighter due to gap risk
-        "trailing_stop_atr_mult": 2.0,
-        "max_position_pct": 0.10,  # Smaller due to extreme volatility
-        "earnings_pause_days": 2,
-        "volatility_filter_percentile": 85,
-        "gap_threshold": 0.02,  # 2% gap = stand aside
-        "circuit_breaker_protocol": True,
     },
     "SEMICONDUCTOR_MEMORY": {
         "region": "US",
@@ -71,11 +58,6 @@ MARKET_CONFIGS = {
         "mr_num_std": 2.0,
         "trend_ma": 50,
         "atr_lookback": 14,
-        "stop_loss_atr_mult": 2.5,
-        "trailing_stop_atr_mult": 2.5,
-        "max_position_pct": 0.15,
-        "cycle_detection": True,  # Use memory price indicators
-        "earnings_pause_days": 2,
     },
     "SEMICONDUCTOR_LOGIC": {
         "region": "US",
@@ -87,11 +69,6 @@ MARKET_CONFIGS = {
         "mr_num_std": 2.0,
         "trend_ma": 50,
         "atr_lookback": 14,
-        "stop_loss_atr_mult": 3.0,  # Wider for high-beta logic stocks
-        "trailing_stop_atr_mult": 3.0,
-        "max_position_pct": 0.12,
-        "momentum_preference": True,  # Prefer trend following over mean reversion
-        "earnings_pause_days": 2,
     },
     "NZ_AUS": {
         "region": "NZ/Australia",
@@ -103,13 +80,6 @@ MARKET_CONFIGS = {
         "mr_num_std": 2.0,
         "trend_ma": 50,
         "atr_lookback": 14,
-        "stop_loss_atr_mult": 2.5,
-        "trailing_stop_atr_mult": 2.5,
-        "max_position_pct": 0.025,  # Much smaller — extreme volatility
-        "risk_per_trade": 0.01,  # 1% risk per trade
-        "rr_minimum": 3.0,  # 3:1 reward-to-risk
-        "holding_period_max": 365,  # Days
-        "earnings_pause_days": 2,
     },
 }
 

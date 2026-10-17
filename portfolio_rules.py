@@ -51,11 +51,16 @@ THEMES = {
 
 
 def theme_of(symbol):
-    """The theme a symbol belongs to, or None when it is unclassified."""
-    for name, members in THEMES.items():
-        if symbol in members:
-            return name
-    return None
+    """The theme a symbol belongs to, or None when it is unclassified.
+
+    If a symbol appears in more than one theme (a data integrity bug), returns
+    'MULTIPLE' to make the conflict visible rather than silently picking one
+    based on dict iteration order.
+    """
+    matches = [name for name, members in THEMES.items() if symbol in members]
+    if len(matches) > 1:
+        return 'MULTIPLE'
+    return matches[0] if matches else None
 
 
 def theme_exposure(positions, equity):
@@ -94,7 +99,14 @@ def theme_cap_check(symbol, added_value, positions, equity, max_pct=MAX_THEME_PC
     """
     th = theme_of(symbol)
     if th is None:
-        return True, f"{symbol} is unclassified - no theme cap applies"
+        # FAIL CLOSED. An unclassified symbol has no theme cap, so the cap cannot
+        # constrain it. Refusing the buy is the safe default — the alternative is
+        # a new AI name buying through with no cap, which is exactly how the
+        # AI-hardware sleeve reached 75% of long market value.
+        return False, (f"{symbol} is unclassified - no theme cap applies, "
+                       f"refusing the buy. Add it to THEMES to allow it.")
+    if th == 'MULTIPLE':
+        return False, f"{symbol} appears in multiple themes - fix the THEMES map"
     if equity <= 0:
         # Fail CLOSED. This used to return True ("not evaluated"), which contradicted the
         # fail-closed contract of the order-path wrapper: a zero or unreadable equity
@@ -172,7 +184,9 @@ def thesis_review(positions, held_days, review_after_days=REVIEW_AFTER_DAYS,
         # ORDER MATTERS: the deeper flag wins regardless of age. Testing STALE first (as
         # this did) made LONG_AND_DOWN unreachable past 365 days, so a position down 80%
         # after 500 days reported as merely "stale" and the severity was lost.
-        if pl_pct <= -review_drawdown and days >= review_after_days:
+        # A position down >= review_drawdown is ALWAYS flagged, even if fresh — a 50%
+        # crash in 100 days deserves attention even if the 180-day window hasn't passed.
+        if pl_pct <= -review_drawdown:
             out.append({
                 "symbol": sym, "flag": "LONG_AND_DOWN", "held_days": days,
                 "pl_pct": pl_pct, "action": "REPORT_ONLY",

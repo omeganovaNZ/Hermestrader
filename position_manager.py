@@ -49,7 +49,6 @@ from typing import List, Dict, Optional, Tuple
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from alpaca_trader import AlpacaTrader
 from ensemble_trader import EnsembleTrader
-from market_aware_strategy import MarketAwareHybridStrategy, MARKET_CONFIGS
 from trading_strategy_engine import fetch_data
 from portfolio_rules import (MAX_THEME_PCT, theme_exposure, unclassified_exposure,
                              thesis_review)
@@ -83,8 +82,12 @@ class PositionManager:
         self.trim_log = []
         self.trim_log_path = os.path.join(_HERE, "trim_log.json")
         if os.path.exists(self.trim_log_path):
-            with open(self.trim_log_path, 'r') as f:
-                self.trim_log = json.load(f)
+            try:
+                with open(self.trim_log_path, 'r') as f:
+                    self.trim_log = json.load(f)
+            except (ValueError, OSError):
+                print("  WARNING: trim_log.json unreadable - starting fresh")
+                self.trim_log = []
 
         # Per-symbol ladder state: {"MRVL": {"base_price": 235.29, "rungs_fired": [0.5]}}
         self.ladder_state_path = os.path.join(_HERE, "trim_ladder_state.json")
@@ -260,7 +263,10 @@ class PositionManager:
                            f'held {held_days}d, {down} down days but still above the '
                            f'{ma_days}-day (${sma:,.2f}) - trim {size:.0%} of shares held'),
             })
-        except Exception:
+        except Exception as e:
+            import traceback
+            print(f"  {symbol}: check_trim_signals FAILED - {type(e).__name__}: {e}")
+            traceback.print_exc()
             return signals
         return signals
 
@@ -295,7 +301,7 @@ class PositionManager:
                 # because enforcing the cap on a loser sells it at a loss - the one
                 # thing the trim path must not do. It remains an ADD candidate.
                 pl = float(pos['unrealized_pl'])
-                if pl <= 0:
+                if not (pl > 0):  # NaN-safe: NaN > 0 is False
                     print(f"  {pos['symbol']}: over cap ({pct:.1%} vs {cap:.0%}) but "
                           f"down {pl:,.2f} - a loser, not trimming")
                     continue
@@ -348,7 +354,8 @@ class PositionManager:
                         'reason': (f'{dd:.0%} off its 52-week high (${high:,.2f}) - an ADD '
                                    f'candidate, not a trim{note}'),
                     })
-            except Exception:
+            except Exception as e:
+                print(f"  {sym}: add_signals SKIPPED - {type(e).__name__}: {e}")
                 continue
         return out
 
@@ -420,12 +427,17 @@ class PositionManager:
             return False
 
         qty = float(position['qty'])
+        if not (qty > 0) or qty != qty:  # NaN or non-positive
+            return False
         shares_to_sell = round(qty * trim_pct, 4)
-        if shares_to_sell <= 0:
+        if not (shares_to_sell > 0) or shares_to_sell != shares_to_sell:  # NaN or non-positive
             return False
 
         try:
             order = self.alpaca.place_sell_order(symbol, shares_to_sell)
+            if order is None:
+                print(f"  {symbol}: place_sell_order returned None - not re-basing ladder")
+                return False
             order_id = getattr(order, 'id', None)
             order_status = str(getattr(order, 'status', 'unknown'))
             filled = order_status.lower().endswith('filled')
@@ -444,14 +456,16 @@ class PositionManager:
                 'reason': reason,
                 'remaining_shares': round(qty - shares_to_sell, 4),
             })
-            with open(self.trim_log_path, 'w') as f:
+            _tmp = self.trim_log_path + '.tmp'
+            with open(_tmp, 'w') as f:
                 json.dump(self.trim_log, f, indent=2)
+            os.replace(_tmp, self.trim_log_path)
 
             # Re-base the ROI reference to the price at which this trim was PLACED, so it
             # cannot re-fire while the order is pending. The next trim therefore needs
             # another +100% from HERE - that is what makes this one trim event per
             # doubling instead of a cascade.
-            if rung is not None:
+            if rung is not None and filled:
                 entry = self.ladder_entry(symbol, float(position['avg_entry_price']))
                 if rung not in entry['rungs_fired']:
                     entry['rungs_fired'].append(rung)
@@ -462,6 +476,8 @@ class PositionManager:
                     entry['base_price'] = float(position['current_price'])
                     entry['rungs_fired'] = []
                 self.save_ladder_state()
+            elif rung is not None and not filled:
+                print(f"  {symbol}: order {order_status} - NOT re-basing ladder")
             return True
         except Exception:
             return False
@@ -472,10 +488,16 @@ class PositionManager:
         Selling is for a broken business: deteriorating fundamentals, a lost competitive
         position, a thesis that simply did not happen. It is not a reaction to a drawdown.
         """
-        position = next((p for p in self.alpaca.get_positions() if p['symbol'] == symbol), None)
-        if position is None:
-            return False
         try:
+            position = next((p for p in self.alpaca.get_positions() if p['symbol'] == symbol), None)
+            if position is None:
+                return False
+            # Never stack a second sell order while one is pending
+            pending = {o['symbol'] for o in self.alpaca.get_open_orders()
+                       if str(o.get('side', '')).lower() == 'sell'}
+            if symbol in pending:
+                print(f"  {symbol}: a sell order is already pending - not stacking thesis exit")
+                return False
             order = self.alpaca.place_sell_order(symbol, round(float(position['qty']), 4))
             status = str(getattr(order, 'status', 'unknown'))
             self.trim_log.append({
@@ -488,8 +510,10 @@ class PositionManager:
                 'shares_ordered': float(position['qty']),
                 'reason': reason,
             })
-            with open(self.trim_log_path, 'w') as f:
+            _tmp = self.trim_log_path + '.tmp'
+            with open(_tmp, 'w') as f:
                 json.dump(self.trim_log, f, indent=2)
+            os.replace(_tmp, self.trim_log_path)
             self.ladder_state.pop(symbol, None)
             self.save_ladder_state()
             return True
@@ -513,31 +537,38 @@ class PositionManager:
         print(f"  Position cap: {r['max_position_pct']:.0%} of equity (winners only)")
         print("=" * 80)
 
-        account = self.alpaca.get_account()
-        positions = self.alpaca.get_positions()
-        equity = float(account['equity'])
+        try:
+            account = self.alpaca.get_account()
+            positions = self.alpaca.get_positions()
+            equity = float(account['equity'])
+        except Exception as e:
+            print(f"  FATAL: could not fetch account/positions - {type(e).__name__}: {e}")
+            return 0
         print(f"\n  Cash: ${float(account['cash']):,.2f} | Equity: ${equity:,.2f}")
         print(f"  Positions: {len(positions)}")
 
         print(f"\n  {'sym':6}{'qty':>9}{'entry':>11}{'base':>11}{'now':>10}{'ROI':>9}"
               f"{'to trim':>10}{'held':>7}{'% eq':>8}")
-        for pos in sorted(positions, key=lambda p: -float(p['market_value'])):
-            sym = pos['symbol']
-            avg = float(pos['avg_entry_price'])
-            now = float(pos['current_price'])
-            st = self.profit_trim_status(sym, avg, now)
-            held = "?"
+        for pos in sorted(positions, key=lambda p: -float(p.get('market_value', 0))):
             try:
-                opened = self.alpaca.get_first_buy_date(sym)
-                if opened is not None:
-                    ref = datetime.now(opened.tzinfo) if opened.tzinfo else datetime.now()
-                    held = f"{(ref - opened).days}d"
-            except Exception:
-                pass
-            print(f"  {sym:6}{float(pos['qty']):>9.2f}{avg:>11,.2f}{st['base_price']:>11,.2f}"
-                  f"{now:>10,.2f}{st['gain_from_base']:>+9.1%}"
-                  f"{st['distance_to_trim']:>+10.0%}{held:>7}"
-                  f"{float(pos['market_value'])/equity:>8.1%}")
+                sym = pos['symbol']
+                avg = float(pos['avg_entry_price'])
+                now = float(pos['current_price'])
+                st = self.profit_trim_status(sym, avg, now)
+                held = "?"
+                try:
+                    opened = self.alpaca.get_first_buy_date(sym)
+                    if opened is not None:
+                        ref = datetime.now(opened.tzinfo) if opened.tzinfo else datetime.now()
+                        held = f"{(ref - opened).days}d"
+                except Exception:
+                    pass
+                print(f"  {sym:6}{float(pos['qty']):>9.2f}{avg:>11,.2f}{st['base_price']:>11,.2f}"
+                      f"{now:>10,.2f}{st['gain_from_base']:>+9.1%}"
+                      f"{st['distance_to_trim']:>+10.0%}{held:>7}"
+                      f"{float(pos['market_value'])/equity:>8.1%}")
+            except Exception as e:
+                print(f"  {pos.get('symbol', '?'):6} DISPLAY SKIPPED - {type(e).__name__}: {e}")
 
         executed = 0
 
@@ -566,7 +597,11 @@ class PositionManager:
             print("  nothing eligible (needs +100% ROI, held >6 months, and 2 down days)")
 
         print(f"\n{'-' * 80}\n  POSITION CAP\n{'-' * 80}")
-        caps = self.position_cap_signals()
+        try:
+            caps = self.position_cap_signals()
+        except Exception as e:
+            print(f"  position_cap_signals FAILED - {type(e).__name__}: {e}")
+            caps = []
         if not caps:
             print("  no cap trims to place")
         for c in caps:
@@ -574,25 +609,37 @@ class PositionManager:
             if dry_run:
                 print(f"    WOULD TRIM: {c['shares_to_sell']:,.2f} shares")
                 continue
-            if self.execute_trim(c['symbol'], c['trim_pct'], c['reason']):
+            if self.execute_trim(c['symbol'], c['trim_pct'], c['reason'],
+                                 rung=c.get('cap_rung', 0.10), re_base=True):
                 print(f"    TRIMMED: ordered {c['shares_to_sell']:,.2f} shares")
                 executed += 1
             else:
                 print("    TRIM FAILED")
 
         print(f"\n{'-' * 80}\n  THEME EXPOSURE (cap {MAX_THEME_PCT:.0%})\n{'-' * 80}")
-        for t in self.theme_signals():
-            print(f"  {t['reason']}")
+        try:
+            for t in self.theme_signals():
+                print(f"  {t['reason']}")
+        except Exception as e:
+            print(f"  theme_signals FAILED - {type(e).__name__}: {e}")
 
         print(f"\n{'-' * 80}\n  THESIS REVIEW (report only - never sells)\n{'-' * 80}")
-        revs = self.thesis_review_signals()
+        try:
+            revs = self.thesis_review_signals()
+        except Exception as e:
+            print(f"  thesis_review_signals FAILED - {type(e).__name__}: {e}")
+            revs = []
         if not revs:
             print("  nothing flagged")
         for r in revs:
             print(f"  {r['symbol']}: {r['reason']}")
 
         print(f"\n{'-' * 80}\n  ADD CANDIDATES (report only - never auto-bought)\n{'-' * 80}")
-        adds = self.add_signals()
+        try:
+            adds = self.add_signals()
+        except Exception as e:
+            print(f"  add_signals FAILED - {type(e).__name__}: {e}")
+            adds = []
         if not adds:
             print("  none")
         for a in adds:
