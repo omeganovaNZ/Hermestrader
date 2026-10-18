@@ -1,7 +1,6 @@
 """Focused verification of the two ensemble fixes (sentiment source, ML training)."""
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import sys
 
 from src.ensemble_trader import SentimentFilter, LightGBMPredictor
 
@@ -28,4 +27,4 @@ mp2 = LightGBMPredictor()
 ok_ml = mp2.train("XOM", "2y") and mp2.predict("XOM") is not None
 print(f"  sentiment produces real scores : {ok_sent}")
 print(f"  ML produces real probabilities : {ok_ml}")
-sys.exit(0 if (ok_sent and ok_ml) else 1)
+assert ok_sent and ok_ml, "Ensemble fixes verification failed"
