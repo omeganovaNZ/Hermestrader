@@ -68,7 +68,6 @@ Hermestrader/
 │   ├── test_alpaca_api2.py
 │   ├── test_cap_trim_guard.py
 │   ├── test_ensemble_fixes.py
-│   ├── test_investopedia_api.py
 │   ├── test_ladder_state_persistence.py
 │   ├── test_portfolio_rules.py
 │   ├── test_position_sizing.py
