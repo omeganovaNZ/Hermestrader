@@ -12,8 +12,8 @@ import pandas as pd
 from datetime import datetime
 from typing import List, Dict, Optional
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from trading_strategy_engine import fetch_data
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from src.trading_strategy_engine import fetch_data
 
 
 
@@ -309,7 +309,7 @@ def run_screener():
     print(f"\n  AVOID: {len(avoid)}")
     
     # Save results
-    output_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "screener_results.json")
+    output_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "screener_results.json")
     with open(output_path, 'w') as f:
         json.dump(results, f, indent=2)
     print(f"\n  Saved to: {output_path}")

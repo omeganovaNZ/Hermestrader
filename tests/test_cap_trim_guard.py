@@ -17,12 +17,14 @@ B. PENDING-ORDER DEDUPE. A cap trim is placed with rung=None, so the ladder's
 
 The Alpaca client is mocked; nothing touches the network or the order path.
 """
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from unittest.mock import MagicMock
 
 from alpaca.trading.enums import OrderSide
 
-from alpaca_trader import AlpacaTrader
-from position_manager import PositionManager
+from src.alpaca_trader import AlpacaTrader
+from src.position_manager import PositionManager
 
 EQUITY = 100_000.0          # 10% cap -> $10,000 max market value
 

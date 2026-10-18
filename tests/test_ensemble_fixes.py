@@ -1,7 +1,9 @@
 """Focused verification of the two ensemble fixes (sentiment source, ML training)."""
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import sys
 
-from ensemble_trader import SentimentFilter, LightGBMPredictor
+from src.ensemble_trader import SentimentFilter, LightGBMPredictor
 
 print("=== SENTIMENT LAYER (was: always NEUTRAL 0.5) ===")
 sf = SentimentFilter()

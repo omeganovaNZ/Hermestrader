@@ -1,0 +1,16 @@
+# Hermestrader — Python dependencies
+# Install with: pip install -r requirements.txt
+
+# Core data & API
+yfinance>=0.2.50
+pandas>=2.0
+numpy>=1.24
+
+# Alpaca trading (paper + live)
+alpaca-trade-api>=3.0.0
+
+# ML (optional — ensemble LightGBM layer)
+lightgbm>=4.0.0
+
+# Plotting (optional — backtest charts)
+matplotlib>=3.7.0

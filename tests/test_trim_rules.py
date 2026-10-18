@@ -3,9 +3,11 @@
 Read-only: calls check_trim_signals() and the cooldown helpers, never execute_trim()
 or run_position_management() - those place real orders.
 """
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from datetime import datetime, timedelta
 
-from position_manager import PositionManager
+from src.position_manager import PositionManager
 
 pm = PositionManager()
 

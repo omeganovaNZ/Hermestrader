@@ -7,7 +7,9 @@ needs +100%, the cap trim only sells winners, and thesis_break_exit is called by
 
 Both are pure functions, so these tests need no network and no mocking of Alpaca.
 """
-import portfolio_rules as pr
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import src.portfolio_rules as pr
 
 EQUITY = 100_000.0
 

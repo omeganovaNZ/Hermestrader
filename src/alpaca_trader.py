@@ -11,15 +11,15 @@ import pandas as pd
 from datetime import datetime, timedelta
 
 # Add parent directory to path for imports
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from market_aware_strategy import MarketAwareHybridStrategy, MARKET_CONFIGS
-from portfolio_rules import theme_cap_check_safe
+from src.market_aware_strategy import MarketAwareHybridStrategy, MARKET_CONFIGS
+from src.portfolio_rules import theme_cap_check_safe
 
 
 def load_credentials():
     """Load API credentials from local config file."""
-    config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "alpaca_config.txt")
+    config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "alpaca_config.txt")
     API_KEY = None
     API_SECRET = None
     with open(config_path, 'r') as f:
@@ -92,7 +92,7 @@ class AlpacaTrader:
         ]
         
         # Load previous trades log if exists
-        self.trades_log_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "alpaca_trades_log.json")
+        self.trades_log_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "alpaca_trades_log.json")
         self.trades_log = []
         if os.path.exists(self.trades_log_path):
             try:

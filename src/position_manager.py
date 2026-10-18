@@ -44,14 +44,14 @@ import json
 from datetime import datetime
 from typing import Dict, List, Optional
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from alpaca_trader import AlpacaTrader
-from ensemble_trader import EnsembleTrader
-from trading_strategy_engine import fetch_data
-from portfolio_rules import (MAX_THEME_PCT, theme_exposure, unclassified_exposure,
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from src.alpaca_trader import AlpacaTrader
+from src.ensemble_trader import EnsembleTrader
+from src.trading_strategy_engine import fetch_data
+from src.portfolio_rules import (MAX_THEME_PCT, theme_exposure, unclassified_exposure,
                              thesis_review)
 
-_HERE = os.path.dirname(os.path.abspath(__file__))
+_HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 class PositionManager:
@@ -78,7 +78,7 @@ class PositionManager:
         }
 
         self.trim_log = []
-        self.trim_log_path = os.path.join(_HERE, "trim_log.json")
+        self.trim_log_path = os.path.join(_HERE, "data", "trim_log.json")
         if os.path.exists(self.trim_log_path):
             try:
                 with open(self.trim_log_path, 'r') as f:
@@ -88,7 +88,7 @@ class PositionManager:
                 self.trim_log = []
 
         # Per-symbol ladder state: {"MRVL": {"base_price": 235.29, "rungs_fired": [0.5]}}
-        self.ladder_state_path = os.path.join(_HERE, "trim_ladder_state.json")
+        self.ladder_state_path = os.path.join(_HERE, "data", "trim_ladder_state.json")
         self.ladder_state = {}
         if os.path.exists(self.ladder_state_path):
             loaded = None
@@ -111,6 +111,7 @@ class PositionManager:
     def save_ladder_state(self) -> None:
         # Write to a temp file and rename, so a crash mid-write cannot leave a
         # truncated (unparseable) state file behind.
+        os.makedirs(os.path.dirname(self.ladder_state_path), exist_ok=True)
         tmp = self.ladder_state_path + '.tmp'
         with open(tmp, 'w') as f:
             json.dump(self.ladder_state, f, indent=2)

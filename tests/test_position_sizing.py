@@ -8,7 +8,9 @@ MRVL (23% of equity, down), MU, RKLB and DDOG all arrived that way.
 
 The fix sizes BELOW the trim cap so a position has room to rise before the cap binds.
 """
-from alpaca_trader import AlpacaTrader
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from src.alpaca_trader import AlpacaTrader
 
 TRIM_CAP = 0.10          # position_manager.trim_rules['max_position_pct']
 ENTRY_CAP = 0.08         # alpaca_trader default, deliberately below the trim cap

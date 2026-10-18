@@ -11,12 +11,14 @@ Growth alone never trims. After a trim the reference re-bases to the trim price,
 next trim needs another +100% from there. These tests pin each condition individually, so
 a regression in any one of them fails loudly rather than silently allowing a trim.
 """
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import os
 import tempfile
 from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock
 
-from position_manager import PositionManager
+from src.position_manager import PositionManager
 
 RULES = {
     'profit_trim_pct': 1.00,

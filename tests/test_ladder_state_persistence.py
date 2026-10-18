@@ -18,27 +18,30 @@ The Alpaca and ensemble clients are mocked and the module's _HERE is redirected
 to a temp dir, so nothing touches the network, the order path, or the real
 state file.
 """
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import json
 import os
 import tempfile
 from unittest.mock import MagicMock, patch
 
-import position_manager
-from position_manager import PositionManager
+import src.position_manager
+from src.position_manager import PositionManager
 
 STATE = "trim_ladder_state.json"
 
 
 def make_pm(tmp):
     """A real PositionManager with _HERE redirected to tmp and no network."""
-    with patch.object(position_manager, '_HERE', tmp), \
-         patch.object(position_manager, 'AlpacaTrader', MagicMock(), create=True), \
-         patch.object(position_manager, 'EnsembleTrader', MagicMock(), create=True):
+    with patch.object(src.position_manager, '_HERE', tmp), \
+         patch.object(src.position_manager, 'AlpacaTrader', MagicMock(), create=True), \
+         patch.object(src.position_manager, 'EnsembleTrader', MagicMock(), create=True):
         return PositionManager()
 
 
 def write_state(tmp, raw):
-    with open(os.path.join(tmp, STATE), 'w') as f:
+    os.makedirs(os.path.join(tmp, "data"), exist_ok=True)
+    with open(os.path.join(tmp, "data", STATE), 'w') as f:
         f.write(raw)
 
 
@@ -70,7 +73,7 @@ def test_atomic_save_writes_valid_json_and_no_temp():
     pm = make_pm(tmp)
     pm.ladder_state = {"MRVL": {"base_price": 235.29, "rungs_fired": [0.5]}}
     pm.save_ladder_state()
-    with open(os.path.join(tmp, STATE)) as f:
+    with open(os.path.join(tmp, "data", STATE)) as f:
         loaded = json.load(f)                                     # must be parseable
     assert loaded == pm.ladder_state, f"round-trip mismatch: {loaded}"
     leftovers = [n for n in os.listdir(tmp) if n.endswith('.tmp')]
@@ -83,12 +86,12 @@ def test_write_failure_leaves_real_file_intact():
     pm = make_pm(tmp)
     pm.ladder_state = {"MRVL": {"base_price": 235.29, "rungs_fired": [0.5]}}
     pm.save_ladder_state()
-    path = os.path.join(tmp, STATE)
+    path = os.path.join(tmp, "data", STATE)
     with open(path) as f:
         good = f.read()
 
     pm.ladder_state = {"BROKEN": {"base_price": 1.0}}
-    with patch.object(position_manager.json, 'dump', side_effect=OSError("disk full")):
+    with patch.object(src.position_manager.json, 'dump', side_effect=OSError("disk full")):
         try:
             pm.save_ladder_state()
         except OSError:

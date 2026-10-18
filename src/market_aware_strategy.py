@@ -17,8 +17,8 @@ import json
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from trading_strategy_engine import (
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from src.trading_strategy_engine import (
     BacktestEngine, fetch_data
 )
 
@@ -335,7 +335,7 @@ def main():
     print("=" * 100)
     
     # Save results
-    output_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "market_aware_results.json")
+    output_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "market_aware_results.json")
     with open(output_path, 'w') as f:
         json.dump(all_results, f, indent=2)
     print(f"\nResults saved to: {output_path}")

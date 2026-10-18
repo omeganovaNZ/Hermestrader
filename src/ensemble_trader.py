@@ -11,10 +11,10 @@ import pandas as pd
 from datetime import datetime
 from typing import Dict, Optional, Tuple
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from alpaca_trader import AlpacaTrader
-from market_aware_strategy import MarketAwareHybridStrategy, MARKET_CONFIGS
-from trading_strategy_engine import fetch_data
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from src.alpaca_trader import AlpacaTrader
+from src.market_aware_strategy import MarketAwareHybridStrategy, MARKET_CONFIGS
+from src.trading_strategy_engine import fetch_data
 
 
 class LightGBMPredictor:
@@ -531,7 +531,7 @@ def main():
     results = trader.run_ensemble_scan()
     
     # Save results
-    output_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ensemble_signals.json")
+    output_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "ensemble_signals.json")
     with open(output_path, 'w') as f:
         json.dump(results, f, indent=2)
     print(f"\n  Saved to: {output_path}")
