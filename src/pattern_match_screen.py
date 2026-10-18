@@ -366,7 +366,7 @@ def main():
         print(f"\n  #{i+1}: {m['candidate']} (similarity: {m['similarity']:.0f}%)")
         print(f"      Mirrors: {m['matched_on']} ({m['matched_on_name']}) — hist score: {m['hist_score']}/100")
         print(f"      Today: RSI={c['rsi']:.1f}, ADX={c['adx']:.1f}, Trend={c['trend']}, "
-              f"Score={c['curr_score']}/100")
+              f"Score={c['score']}/100")
 
     # Save results
     output_path = os.path.join(DATA_DIR, "pattern_match_results.json")
