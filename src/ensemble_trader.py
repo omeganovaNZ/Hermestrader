@@ -142,6 +142,7 @@ class LightGBMPredictor:
             return float(prob)
             
         except Exception as e:
+            print(f"  Prediction failed for {ticker}: {e}")
             return None
 
 
@@ -261,6 +262,7 @@ class SentimentFilter:
                 'source': 'unavailable',
             }
         except Exception as e:
+            print(f"  Sentiment fetch failed for {ticker}: {e}")
             return {
                 'ticker': ticker,
                 'sentiment': 'NEUTRAL',

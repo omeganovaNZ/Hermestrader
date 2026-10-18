@@ -10,10 +10,9 @@ Output: data/pattern_match_results.json
 import yfinance as yf
 import pandas as pd
 import numpy as np
-from datetime import datetime, timedelta
+from datetime import datetime
 import json
 import os
-import sys
 
 # Ensure data/ directory exists
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
@@ -102,9 +101,11 @@ def compute_technical_indicators(df):
         abs(df['Low'] - df['Close'].shift(1))
     ], axis=1).max(axis=1)
     atr = tr.rolling(14).mean()
-    plus_di = 100 * (plus_dm.rolling(14).mean() / atr)
-    minus_di = 100 * (minus_dm.rolling(14).mean() / atr)
-    dx = 100 * abs(plus_di - minus_di) / (plus_di + minus_di)
+    atr_safe = atr.replace(0, np.nan)
+    plus_di = 100 * (plus_dm.rolling(14).mean() / atr_safe)
+    minus_di = 100 * (minus_dm.rolling(14).mean() / atr_safe)
+    di_sum = (plus_di + minus_di).replace(0, np.nan)
+    dx = 100 * abs(plus_di - minus_di) / di_sum
     adx = float(dx.rolling(14).mean().iloc[-1]) if len(df) >= 28 else np.nan
 
     # Bollinger Bands

@@ -13,7 +13,7 @@ a regression in any one of them fails loudly rather than silently allowing a tri
 """
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import os
+
 import tempfile
 from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock

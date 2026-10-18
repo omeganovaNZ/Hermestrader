@@ -107,7 +107,7 @@ class AlpacaTrader:
         # from MarketAwareHybridStrategy. The ensemble screener (ensemble_trader.py)
         # is a separate tool that generates ensemble_score but is not wired into
         # this buy path. This attribute is kept as documentation of intent.
-        self.min_confirming_signals = 3
+        # Note: min_confirming_signals is defined for documentation but NOT currently enforced
         # Cap on a NEW position's share of account value. Kept BELOW the trim cap
         # (position_manager.max_position_pct = 0.10) so a position is never born over-cap
         # and has room to rise before the cap binds. This attribute used to be dead: it said

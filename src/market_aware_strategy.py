@@ -84,6 +84,40 @@ MARKET_CONFIGS = {
 }
 
 
+# ===================== Helper Functions =====================
+
+def _exit_persistence(adx_val):
+    """Regime-dependent exit persistence: 5d trending (ADX>33), 4d ranging (ADX<20), linear between."""
+    if pd.isna(adx_val):
+        return 4.0
+    if adx_val > 33:
+        return 5.0
+    elif adx_val < 20:
+        return 4.0
+    else:
+        return 4.0 + (adx_val - 20.0) / 13.0
+
+
+def _entry_persistence(regime):
+    """2-day entry persistence in trends, 3-day in ranging."""
+    if regime == "trending":
+        return 2
+    elif regime == "ranging":
+        return 3
+    else:
+        return 2
+
+
+def _max_trades_per_week(regime):
+    """Regime-dependent frequency cap: 2-4 trades/week."""
+    if regime == "trending":
+        return 2
+    elif regime == "ranging":
+        return 4
+    else:
+        return 3
+
+
 # ===================== MARKET-AWARE STRATEGY =====================
 
 class MarketAwareHybridStrategy:
@@ -188,36 +222,6 @@ class MarketAwareHybridStrategy:
         df['regime'] = "transition"  # Default
         df.loc[df['adx'] > adx_high, 'regime'] = "trending"
         df.loc[df['adx'] < adx_low, 'regime'] = "ranging"
-
-        # Round-4: Helper functions for persistence and overrides
-        def _exit_persistence(adx_val):
-            """Regime-dependent exit persistence: 5d trending (ADX>33), 4d ranging (ADX<20), linear between."""
-            if pd.isna(adx_val):
-                return 4.0
-            if adx_val > 33:
-                return 5.0
-            elif adx_val < 20:
-                return 4.0
-            else:
-                return 4.0 + (adx_val - 20.0) / 13.0
-
-        def _entry_persistence(regime):
-            """2-day entry persistence in trends, 3-day in ranging."""
-            if regime == "trending":
-                return 2
-            elif regime == "ranging":
-                return 3
-            else:
-                return 2
-
-        def _max_trades_per_week(regime):
-            """Regime-dependent frequency cap: 2-4 trades/week."""
-            if regime == "trending":
-                return 2
-            elif regime == "ranging":
-                return 4
-            else:
-                return 3
 
         # Generate signals with round-4 persistence and overrides
         signals = []

@@ -1,5 +1,6 @@
 # Credentials & secrets
 alpaca_config.txt
+alpaca_config_test1.txt
 *.env
 .env
 config.ini

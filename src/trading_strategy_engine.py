@@ -10,9 +10,9 @@ import numpy as np
 import matplotlib
 matplotlib.use('Agg')  # Non-interactive backend
 import matplotlib.pyplot as plt
-from datetime import datetime, timedelta
+from datetime import datetime
 from dataclasses import dataclass, field
-from typing import List, Dict, Optional
+from typing import List, Optional
 import json
 import os
 
@@ -227,7 +227,9 @@ class MeanReversionStrategy:
         df['std'] = df['Close'].rolling(self.lookback).std()
         df['upper_band'] = df['sma'] + self.num_std * df['std']
         df['lower_band'] = df['sma'] - self.num_std * df['std']
-        df['pct_b'] = (df['Close'] - df['lower_band']) / (df['upper_band'] - df['lower_band'])
+        bb_range = df['upper_band'] - df['lower_band']
+        df['pct_b'] = (df['Close'] - df['lower_band']) / bb_range.replace(0, np.nan)
+        df['pct_b'] = df['pct_b'].fillna(0.5)
         
         df['signal'] = 0
         # Buy when below lower band (oversold)
