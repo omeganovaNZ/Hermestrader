@@ -301,23 +301,29 @@ class EnsembleTrader:
         
         signals = {}
         
-        # 1. Technical signal (ADX + Bollinger)
+        # 1. Technical signal (Round-4 regime-aware ADX + Bollinger)
         try:
             data = fetch_data(symbol, "6mo")
             if data is not None and len(data) > 50:
                 config = MARKET_CONFIGS.get(config_name, MARKET_CONFIGS["US_TECH"])
                 strategy = MarketAwareHybridStrategy(config)
                 signals_df = strategy.generate_signals(data)
-                latest_signal = int(signals_df['signal'].iloc[-1])
+                # Use the signal from 2 bars ago to avoid look-ahead bias
+                # (the strategy's signal at bar i uses data up to bar i)
+                latest_signal = int(signals_df['signal'].iloc[-2]) if len(signals_df) >= 2 else int(signals_df['signal'].iloc[-1])
                 regime = signals_df['regime'].iloc[-1]
                 signals['technical'] = latest_signal
                 signals['regime'] = regime
+                # Round-4: expose regime for veto/override logic
+                signals['adx'] = float(signals_df['adx'].iloc[-1]) if not pd.isna(signals_df['adx'].iloc[-1]) else 0.0
             else:
                 signals['technical'] = 0
                 signals['regime'] = 'unknown'
+                signals['adx'] = 0.0
         except Exception:
             signals['technical'] = 0
             signals['regime'] = 'unknown'
+            signals['adx'] = 0.0
         
         # 2. ML prediction - train on demand. Per-symbol model cache: training symbol B
         # must NOT overwrite symbol A's model. Each symbol gets its own trained model.
@@ -390,8 +396,11 @@ class EnsembleTrader:
         # ML contribution
         ensemble_score += self.signal_weights['ml_prediction'] * (signals['ml_probability'] - 0.5) * 2
         
-        # Sentiment contribution
-        ensemble_score += self.signal_weights['sentiment'] * (signals['sentiment_score'] - 0.5) * 2
+        # Sentiment as binary veto (Round-4): only veto when strongly negative,
+        # not a linear contributor. A missing/neutral sentiment adds nothing.
+        sentiment_veto = False
+        if signals.get('sentiment_available', False) and signals['sentiment_score'] < 0.3:
+            sentiment_veto = True
         
         # Momentum contribution
         ensemble_score += self.signal_weights['momentum'] * np.sign(signals['momentum']) * min(abs(signals['momentum']), 1.0)
@@ -412,10 +421,10 @@ class EnsembleTrader:
         # Volatility uses 0.25 as a fallback (maps to vol_score=0, neutral), so
         # check if the computed vol is the fallback value.
         _vol_is_fallback = not signals.get('vol_available', False)
+        # Sentiment is a veto, not a contributing layer — exclude from live weight
         _live = {
             'technical': signals['technical'] != 0,
             'ml_prediction': signals.get('ml_available', False),
-            'sentiment': signals.get('sentiment_available', False),
             'momentum': signals.get('momentum_available', False),
             'volatility': not _vol_is_fallback,
         }
@@ -425,6 +434,22 @@ class EnsembleTrader:
         if _live_weight > 0:
             ensemble_score = ensemble_score / _live_weight
         signals['ensemble_score'] = ensemble_score
+
+        # Round-4 trend-strength override: don't SELL when 12m momentum > +50% AND
+        # price > 200-day MA. This prevents premature exits in strong trends.
+        trend_override = False
+        try:
+            data = fetch_data(symbol, "1y")
+            if data is not None and len(data) > 200:
+                ma200 = data['Close'].rolling(200).mean().iloc[-1]
+                mom_12m = (data['Close'].iloc[-1] / data['Close'].iloc[0]) - 1
+                if mom_12m > 0.50 and data['Close'].iloc[-1] > ma200:
+                    trend_override = True
+                    signals['trend_override'] = True
+        except Exception:
+            pass
+        if not trend_override:
+            signals['trend_override'] = False
         
         # Final decision. Require a minimum number of live layers before acting: the standing
         # rule is to act only on multiple independent confirming signals, so a score built
@@ -440,6 +465,12 @@ class EnsembleTrader:
             signals['decision_note'] = (
                 f"held - only {len(signals['layers_used'])} live layer(s), "
                 f"need {self.MIN_LIVE_LAYERS}")
+        elif sentiment_veto:
+            signals['decision'] = 'HOLD'
+            signals['decision_note'] = 'vetoed - strongly negative sentiment'
+        elif signals.get('trend_override', False) and ensemble_score < -0.1:
+            signals['decision'] = 'HOLD'
+            signals['decision_note'] = 'held - trend-strength override (strong uptrend, no sells)'
         elif ensemble_score > 0.3:
             signals['decision'] = 'STRONG_BUY'
         elif ensemble_score > 0.1:

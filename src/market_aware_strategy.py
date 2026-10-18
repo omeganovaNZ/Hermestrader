@@ -140,12 +140,35 @@ class MarketAwareHybridStrategy:
     
     def generate_signals(self, df: pd.DataFrame) -> pd.DataFrame:
         df = df.copy()
-        
+
         # Calculate indicators
         df['adx'] = self._calculate_adx(df)
         df['atr'] = self._calculate_atr(df)
         df['trend_ma'] = df['Close'].rolling(self.config["trend_ma"]).mean()
-        
+
+        # Round-4 additional indicators
+        df['ma20'] = df['Close'].rolling(20).mean()
+        df['ma200'] = df['Close'].rolling(200).mean()
+
+        # RSI for exit confirmation
+        delta = df['Close'].diff()
+        gain = (delta.where(delta > 0, 0)).rolling(14).mean()
+        loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
+        rs = gain / loss.replace(0, np.nan)
+        df['rsi'] = 100 - (100 / (1 + rs))
+        df['rsi'] = df['rsi'].fillna(50)
+
+        # 20-day momentum and slope
+        df['momentum_20d'] = df['Close'].pct_change(20)
+        df['momentum_slope'] = df['momentum_20d'].diff(5)
+
+        # 12-month momentum for trend-strength override
+        df['momentum_12m'] = df['Close'].pct_change(252)
+
+        # Annualized volatility (20-day rolling)
+        daily_returns = df['Close'].pct_change()
+        df['volatility'] = daily_returns.rolling(20).std() * np.sqrt(252)
+
         # Bollinger Bands
         df['sma'] = df['Close'].rolling(self.config["mr_lookback"]).mean()
         df['std'] = df['Close'].rolling(self.config["mr_lookback"]).std()
@@ -154,62 +177,149 @@ class MarketAwareHybridStrategy:
         bb_range = df['upper_band'] - df['lower_band']
         df['pct_b'] = (df['Close'] - df['lower_band']) / bb_range.replace(0, np.nan)
         df['pct_b'] = df['pct_b'].fillna(0.5)
-        
+
         # ADX slope (rising or falling)
         df['adx_slope'] = df['adx'].diff(5)
-        
+
         # Regime detection
         adx_high = self.config["adx_threshold"]
         adx_low = self.config["adx_transition_low"]
-        
+
         df['regime'] = "transition"  # Default
         df.loc[df['adx'] > adx_high, 'regime'] = "trending"
         df.loc[df['adx'] < adx_low, 'regime'] = "ranging"
-        
-        # Generate signals based on regime and market config
+
+        # Round-4: Helper functions for persistence and overrides
+        def _exit_persistence(adx_val):
+            """Regime-dependent exit persistence: 5d trending (ADX>33), 4d ranging (ADX<20), linear between."""
+            if pd.isna(adx_val):
+                return 4.0
+            if adx_val > 33:
+                return 5.0
+            elif adx_val < 20:
+                return 4.0
+            else:
+                return 4.0 + (adx_val - 20.0) / 13.0
+
+        def _entry_persistence(regime):
+            """2-day entry persistence in trends, 3-day in ranging."""
+            if regime == "trending":
+                return 2
+            elif regime == "ranging":
+                return 3
+            else:
+                return 2
+
+        def _max_trades_per_week(regime):
+            """Regime-dependent frequency cap: 2-4 trades/week."""
+            if regime == "trending":
+                return 2
+            elif regime == "ranging":
+                return 4
+            else:
+                return 3
+
+        # Generate signals with round-4 persistence and overrides
         signals = []
         position = 0
-        
+        exit_counter = 0
+        entry_counter = 0
+
         for i in range(len(df)):
             row = df.iloc[i]
             regime = row['regime']
-            
+            adx_val = row['adx']
+
+            req_exit_persist = _exit_persistence(adx_val)
+            req_entry_persist = _entry_persistence(regime)
+
+            # Frequency cap: check trades in last 5 bars (approx 1 week)
+            recent = signals[-5:] if len(signals) >= 5 else signals
+            trades_this_week = sum(1 for s in recent if s != 0)
+            freq_cap = _max_trades_per_week(regime)
+            freq_ok = trades_this_week < freq_cap
+
             if position == 0:
                 # Look for entry
+                entry_signal = False
                 if regime == "trending":
-                    # Trending: buy if price > trend MA and ADX rising
                     if row['Close'] > row['trend_ma'] and row['adx_slope'] > 0:
-                        signals.append(1)
-                        position = 1
-                    else:
-                        signals.append(0)
+                        entry_signal = True
                 elif regime == "ranging":
-                    # Ranging: mean reversion — buy oversold
                     if row['pct_b'] < 0.05:
+                        entry_signal = True
+
+                if entry_signal:
+                    # Volatility-scaled momentum bypass
+                    mom_20d = row['momentum_20d']
+                    vol = row['volatility']
+                    slope = row['momentum_slope']
+
+                    bypass = False
+                    if not pd.isna(mom_20d) and not pd.isna(vol) and not pd.isna(slope):
+                        if vol > 0.60:
+                            mom_thresh = 0.12
+                        else:
+                            mom_thresh = 0.15
+                        if mom_20d > mom_thresh and slope > 0:
+                            bypass = True
+
+                    if bypass and freq_ok:
                         signals.append(1)
                         position = 1
+                        entry_counter = 0
+                    elif freq_ok:
+                        entry_counter += 1
+                        if entry_counter >= req_entry_persist:
+                            signals.append(1)
+                            position = 1
+                            entry_counter = 0
+                        else:
+                            signals.append(0)
                     else:
+                        entry_counter = 0
                         signals.append(0)
                 else:
-                    # Transition: reduce size or wait
+                    entry_counter = 0
                     signals.append(0)
             else:
-                # Look for exit
-                if regime == "trending":
-                    # Hold in trending regime
-                    signals.append(0)
-                elif regime == "ranging":
-                    # Mean reversion exit: sell overbought
-                    if row['pct_b'] > 0.95:
+                # Look for exit with persistence and trend override
+                exit_signal = False
+
+                # Graduated trend override
+                if adx_val > 40:
+                    exit_allowed = True
+                elif adx_val > 33:
+                    exit_allowed = (row['rsi'] < 40) or (row['Close'] < row['ma20'])
+                else:
+                    mom_12m = row['momentum_12m']
+                    if not pd.isna(mom_12m) and mom_12m > 0.50 and row['Close'] > row['ma200']:
+                        exit_allowed = False
+                    else:
+                        exit_allowed = True
+
+                if exit_allowed:
+                    if regime == "trending":
+                        if row['pct_b'] > 0.95:
+                            exit_signal = True
+                    elif regime == "ranging":
+                        if row['pct_b'] > 0.95:
+                            exit_signal = True
+                    else:
+                        exit_signal = True
+
+                if exit_signal:
+                    exit_counter += 1
+                    if exit_counter >= req_exit_persist:
                         signals.append(-1)
                         position = 0
+                        exit_counter = 0
                     else:
                         signals.append(0)
                 else:
-                    # Transition: exit to be safe
-                    signals.append(-1)
-                    position = 0
-        
+                    exit_counter = 0
+                    signals.append(0)
+
         df['signal'] = signals
         return df
 
