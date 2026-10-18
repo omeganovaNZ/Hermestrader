@@ -1,23 +1,58 @@
 # Hermestrader — Alpaca Paper Trading Bot
 
-An automated paper-trading system for Alpaca Markets with a rule-based strategy engine,
-position manager, and research/backtest toolkit.
+An automated paper-trading system for Alpaca Markets with a 5-layer ensemble signal
+engine, regime-adaptive strategy, position manager, and pattern-match watchlist generator.
+
+**This is NOT investment advice. Past performance does not guarantee future results.**
 
 ## What this is
 
 This is a personal trading system that:
+
 - Screens a watchlist of ~40 stocks using a 5-layer ensemble (technical, ML, sentiment, momentum, volatility)
+- Generates entry/exit signals with regime-adaptive logic (ADX + Bollinger + trend-strength override)
 - Manages positions with profit-taking and cap-trimming rules (Tom Nash framework)
 - Tracks portfolio themes/sleeves with enforced caps
-- Runs daily scans via cron jobs
+- Runs 10 cron jobs (daily scans, weekly reports, price alerts, pattern-match watchlist)
 - Places real orders in Alpaca paper trading ($100k account)
 
-**This is NOT investment advice. Past performance does not guarantee future results.**
+## Architecture
+
+### Signal pipeline
+
+1. **Technical layer** (30%) — Round-4 regime-aware ADX + Bollinger strategy with graduated trend override
+2. **ML layer** (25%) — LightGBM 5-day forward return prediction (per-symbol cached)
+3. **Sentiment layer** (20%) — Binary veto only (blocks trades when strongly negative, < 0.3)
+4. **Momentum layer** (15%) — 12-month return
+5. **Volatility layer** (10%) — Low volatility preference (symmetric scoring)
+
+Signals require 3+ live layers (`MIN_LIVE_LAYERS`). Fewer forces HOLD.
+
+### Regime-adaptive rules (Round-4)
+
+- **Exit persistence**: 5 days in trends (ADX > 33), 4 days in ranging (ADX < 20), linear between
+- **Entry persistence**: 2 days in trends, 3 days in ranging
+- **Trend-strength override**: No sells when 12m momentum > +50% AND price > 200-day MA
+- **Graduated trend override**: ADX > 40 allows all sells; ADX 33-40 requires confirmation (RSI < 40 or price < 20d MA)
+- **Volatility-scaled momentum bypass**: 20-day momentum > 12% (high-vol) or 15% (low-vol) with rising slope bypasses entry persistence
+- **Frequency cap**: 2-4 trades/week depending on regime
+
+### Backtest results (Round-4, verified Oct 2026)
+
+| Stock  | Round-4 | Buy & Hold | Sharpe |
+|--------|---------|------------|--------|
+| BE     | +1432%  | +867%      | 1.21   |
+| TSLA   | +78%    | +15%       | 0.54   |
+| RKLB   | +665%   | +833%      | 1.02   |
+| PLTR   | +1300%  | +1543%     | 1.42   |
+
+Round-4 dominates in choppy/mean-reverting markets (BE, TSLA) and roughly matches Buy & Hold
+on strong trends (RKLB, PLTR) with better risk-adjusted returns.
 
 ## Safety first
 
 - **Dry-run default**: `position_manager.py` places real orders. Always test with `--dry-run` first.
-- **No credential commits**: `alpaca_config.txt` is gitignored. Never commit it.
+- **No credential commits**: `alpaca_config.txt` is gitignored. Verified clean — no leaks.
 - **Public repo warning**: This repo is public. No secrets should ever be committed.
 - **Theme cap enforced**: AI-hardware sleeve capped at 40% of equity (fail-closed).
 - **Position cap**: Max 10% of equity per position (entry cap 8%).
@@ -31,7 +66,7 @@ pip install -r requirements.txt
 # 2. Configure credentials (copy template, fill in your keys)
 cp alpaca_config.example.txt alpaca_config.txt  # then edit
 
-# 3. Run read-only tests (no network, no orders)
+# 3. Run tests (no network, no orders)
 python run_tests.py
 
 # 4. Run a dry-run scan (no orders placed)
@@ -52,11 +87,12 @@ Hermestrader/
 │
 ├── src/                   # Core modules
 │   ├── alpaca_trader.py       # Alpaca API client, order placement
-│   ├── ensemble_trader.py     # 5-layer ensemble signal generator
-│   ├── market_aware_strategy.py  # ADX + Bollinger regime strategy
+│   ├── ensemble_trader.py     # 5-layer ensemble signal generator (Round-4 integrated)
+│   ├── market_aware_strategy.py  # Round-4 regime-adaptive ADX + Bollinger strategy
 │   ├── position_manager.py    # Profit/cap trim rules, thesis review
 │   ├── portfolio_rules.py     # Theme cap, thesis review (pure functions)
 │   ├── stock_screener.py      # Technical entry scoring (0-100)
+│   ├── pattern_match_screen.py # Two-year pattern-match watchlist generator
 │   └── trading_strategy_engine.py  # Backtesting engine, data fetching
 │
 ├── tests/                 # Test suites (plain scripts, run directly)
@@ -80,6 +116,7 @@ Hermestrader/
 │   ├── trim_log.json
 │   ├── screener_results.json
 │   ├── ensemble_signals.json
+│   ├── pattern_match_results.json
 │   └── ...
 │
 └── assets/                # Generated chart images (gitignored)
@@ -92,7 +129,28 @@ Hermestrader/
 python run_tests.py
 ```
 
-This discovers all `tests/test_*.py` files, runs each in a subprocess, and prints a summary.
+Discovers all `tests/test_*.py` files, runs each in a subprocess, and prints a summary.
+Current: 7 suites, 67 tests, 0 failures.
+
+## Cron jobs
+
+The system uses local cron jobs (NZT) for automated scans. These are machine-local and
+not part of the repo. Current schedule:
+
+| Job | Schedule | Description |
+|-----|----------|-------------|
+| Daily Trading News Brief | Weekdays 08:00 | News scan for watched stocks |
+| Daily Stock Screener | Weekdays 08:00 | Technical entry scoring |
+| Daily Alpaca Paper Trading Scan | Weekdays 08:00 | Full portfolio scan (places orders) |
+| Trim Signal Alert | Weekdays 08:00 | Check for trim signals (places orders) |
+| Weekly Structural Trends Brief | Mondays 08:00 | Multi-year trend analysis |
+| Weekly Trading Performance Report | Mondays 08:00 | Portfolio performance summary |
+| Weekly Pattern-Match Watchlist | Mondays 08:00 | Two-year pattern-match screener |
+| Price Watch — ASML Entry | Weekdays 08:00 | Alerts when ASML < $1,600 |
+| Price Watch — STX Entry | Weekdays 08:00 | Alerts when STX < $600 |
+| 1-Month Trade Exit (AMD/LLY) | 16 Nov 09:00 | One-time exit check |
+
+All jobs deliver to connected channels via the Hermes gateway.
 
 ## Live trading
 
@@ -118,10 +176,14 @@ API_SECRET=your_secret_here
 
 Copy `alpaca_config.example.txt` and fill in your Alpaca paper-trading credentials.
 
-## Cron jobs
+## Pattern-match watchlist
 
-The system uses local cron jobs (NZT) for daily scans. These are machine-local and
-not part of the repo. See `docs/TRADING_PLAYBOOK.md` for the full schedule.
+`src/pattern_match_screen.py` compares current holdings' technical profiles from exactly
+2 years ago against today's market to find stocks with similar setups. Output saved to
+`data/pattern_match_results.json`. Runs weekly via cron.
+
+The discipline: pattern match is the spark, fundamentals are the fuel. Every candidate
+must still pass the existing gates (theme cap, entry cap, multiple confirming signals).
 
 ## License
 
