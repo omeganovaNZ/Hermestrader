@@ -431,8 +431,8 @@ class AlpacaTrader:
                         if symbol in pending_buys:
                             print(f"  BUY {symbol}: Skipped (buy order already pending)")
                             continue
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        print(f"  BUY {symbol}: WARNING - could not check pending orders: {e}")
                     shares, price = self.calculate_position_size(
                         symbol, signal['signal'], account['portfolio_value']
                     )
@@ -497,8 +497,8 @@ class AlpacaTrader:
                         if symbol in pending_sells:
                             print(f"  SELL {symbol}: Skipped (sell order already pending)")
                             continue
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        print(f"  SELL {symbol}: WARNING - could not check pending orders: {e}")
                     try:
                         self.place_sell_order(symbol, existing_position['qty'])
                         print(f"  SELL {symbol}: {existing_position['qty']} shares")

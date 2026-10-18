@@ -47,29 +47,35 @@ class LightGBMPredictor:
         df['dist_ma21'] = (df['Close'] / df['Close'].rolling(21).mean()) - 1
         df['dist_ma63'] = (df['Close'] / df['Close'].rolling(63).mean()) - 1
         
-        # RSI
+        # RSI (guard against division by zero when loss == 0)
         delta = df['Close'].diff()
         gain = (delta.where(delta > 0, 0)).rolling(14).mean()
         loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
-        rs = gain / loss
+        rs = gain / loss.replace(0, np.nan)
         df['rsi'] = 100 - (100 / (1 + rs))
+        df['rsi'] = df['rsi'].fillna(100.0)  # no down days → RSI 100
         
-        # Bollinger Band %B
+        # Bollinger Band %B (guard against division by zero when std == 0)
         df['bb_middle'] = df['Close'].rolling(20).mean()
         df['bb_std'] = df['Close'].rolling(20).std()
-        df['bb_pct'] = (df['Close'] - (df['bb_middle'] - 2 * df['bb_std'])) / (4 * df['bb_std'])
+        bb_denom = 4 * df['bb_std']
+        df['bb_pct'] = (df['Close'] - (df['bb_middle'] - 2 * df['bb_std'])) / bb_denom.replace(0, np.nan)
+        df['bb_pct'] = df['bb_pct'].fillna(0.5)  # flat prices → 0.5
         
-        # ADX (simplified)
+        # ADX (simplified, with division-by-zero guards)
         plus_dm = df['High'].diff()
         minus_dm = -df['Low'].diff()
         plus_dm[plus_dm < 0] = 0
         minus_dm[minus_dm < 0] = 0
         tr = pd.concat([df['High'] - df['Low'], abs(df['High'] - df['Close'].shift(1)), abs(df['Low'] - df['Close'].shift(1))], axis=1).max(axis=1)
         atr = tr.rolling(14).mean()
-        plus_di = 100 * (plus_dm.rolling(14).mean() / atr)
-        minus_di = 100 * (minus_dm.rolling(14).mean() / atr)
-        dx = 100 * abs(plus_di - minus_di) / (plus_di + minus_di)
+        atr_safe = atr.replace(0, np.nan)
+        plus_di = 100 * (plus_dm.rolling(14).mean() / atr_safe)
+        minus_di = 100 * (minus_dm.rolling(14).mean() / atr_safe)
+        di_sum = (plus_di + minus_di).replace(0, np.nan)
+        dx = 100 * abs(plus_di - minus_di) / di_sum
         df['adx'] = dx.rolling(14).mean()
+        df['adx'] = df['adx'].fillna(0.0)  # no movement → ADX 0
         
         return df
     
@@ -276,6 +282,7 @@ class EnsembleTrader:
         self.alpaca = AlpacaTrader()
         self.ml_predictor = LightGBMPredictor()
         self._ml_trained = {}          # symbol -> bool; train once per run
+        self._ml_models = {}           # symbol -> trained model; per-symbol cache
         self.sentiment_filter = SentimentFilter()
 
         
@@ -308,19 +315,24 @@ class EnsembleTrader:
             else:
                 signals['technical'] = 0
                 signals['regime'] = 'unknown'
-        except:
+        except Exception:
             signals['technical'] = 0
             signals['regime'] = 'unknown'
         
-        # 2. ML prediction - train on demand. train() was never called anywhere, so the
-        # model stayed None and predict() returned None for every symbol (-> neutral 0.5).
+        # 2. ML prediction - train on demand. Per-symbol model cache: training symbol B
+        # must NOT overwrite symbol A's model. Each symbol gets its own trained model.
         if symbol not in self._ml_trained:
             try:
-                self._ml_trained[symbol] = bool(self.ml_predictor.train(symbol, "2y"))
+                predictor = LightGBMPredictor()
+                self._ml_trained[symbol] = bool(predictor.train(symbol, "2y"))
+                self._ml_models[symbol] = predictor
             except Exception as exc:
                 print(f"  ML train failed for {symbol}: {exc}")
                 self._ml_trained[symbol] = False
-        ml_prob = self.ml_predictor.predict(symbol) if self._ml_trained[symbol] else None
+        if self._ml_trained.get(symbol) and symbol in self._ml_models:
+            ml_prob = self._ml_models[symbol].predict(symbol)
+        else:
+            ml_prob = None
         signals['ml_probability'] = ml_prob if ml_prob is not None else 0.5
         signals['ml_available'] = ml_prob is not None
         
@@ -345,10 +357,11 @@ class EnsembleTrader:
                     signals['momentum'] = 0
             else:
                 signals['momentum'] = 0
-        except:
+        except Exception:
             signals['momentum'] = 0
 
         # 5. Volatility
+        signals['vol_available'] = False
         try:
             data = fetch_data(symbol, "6mo")
             if data is not None and len(data) > 20:
@@ -357,11 +370,12 @@ class EnsembleTrader:
                 # Guard against NaN (empty daily_returns after dropna)
                 if vol == vol and vol > 0:  # not NaN and positive
                     signals['volatility'] = vol
+                    signals['vol_available'] = True
                 else:
                     signals['volatility'] = 0.25  # fallback: neutral (maps to vol_score=0)
             else:
                 signals['volatility'] = 0.25  # fallback: neutral (maps to vol_score=0)
-        except:
+        except Exception:
             signals['volatility'] = 0.25  # fallback: neutral (maps to vol_score=0)
         
         # Calculate ensemble score
@@ -397,7 +411,7 @@ class EnsembleTrader:
         # A layer is "live" only if it produced a real value, not a fallback.
         # Volatility uses 0.25 as a fallback (maps to vol_score=0, neutral), so
         # check if the computed vol is the fallback value.
-        _vol_is_fallback = (signals['volatility'] == 0.25)
+        _vol_is_fallback = not signals.get('vol_available', False)
         _live = {
             'technical': signals['technical'] != 0,
             'ml_prediction': signals.get('ml_available', False),

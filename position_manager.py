@@ -133,9 +133,19 @@ class PositionManager:
         `base_price` is the ROI reference: the average entry price until the first trim,
         then the price at which that trim was placed. So `gain_from_base` is the ROI that
         matters, and it resets to 0 on every trim.
+
+        Read-only: does NOT call ladder_entry() or mutate any state. If the symbol has
+        no ladder entry yet, falls back to avg_entry_price as the base.
         """
-        entry = self.ladder_entry(symbol, avg_entry_price)
-        base = float(entry['base_price'])
+        entry = self.ladder_state.get(symbol)
+        if not isinstance(entry, dict):
+            base = float(avg_entry_price)
+            trim_count = 0
+            last_trim_price = None
+        else:
+            base = float(entry.get('base_price', avg_entry_price))
+            trim_count = int(entry.get('trim_count', 0))
+            last_trim_price = entry.get('last_trim_price')
         gain = (current_price / base) - 1 if base > 0 else 0.0
         target = float(self.trim_rules['profit_trim_pct'])
         return {
@@ -144,8 +154,8 @@ class PositionManager:
             'target': target,
             'distance_to_trim': target - gain,
             'eligible_on_gain': gain >= target,
-            'trim_count': int(entry.get('trim_count', 0)),
-            'last_trim_price': entry.get('last_trim_price'),
+            'trim_count': trim_count,
+            'last_trim_price': last_trim_price,
         }
 
     def _daily_closes(self, symbol: str) -> Optional[List[float]]:
@@ -289,39 +299,44 @@ class PositionManager:
 
         out = []
         for pos in self.alpaca.get_positions():
-            mv = float(pos['market_value'])
-            pct = mv / equity
-            cap = self.trim_rules['max_position_pct']
-            if pct > cap:
-                # Trim WINNERS ONLY. Trimming is risk management on something that
-                # has grown, never a reaction to weakness. An over-cap position that
-                # is DOWN is left alone even though that leaves the cap breached,
-                # because enforcing the cap on a loser sells it at a loss - the one
-                # thing the trim path must not do. It remains an ADD candidate.
-                pl = float(pos['unrealized_pl'])
-                if not (pl > 0):  # NaN-safe: NaN > 0 is False
-                    print(f"  {pos['symbol']}: over cap ({pct:.1%} vs {cap:.0%}) but "
-                          f"down {pl:,.2f} - a loser, not trimming")
-                    continue
-                if pos['symbol'] in pending_sells:
-                    print(f"  {pos['symbol']}: over cap but a cap trim is already "
-                          f"pending - skipping")
-                    continue
-                target_mv = equity * cap
-                excess = mv - target_mv
-                qty = float(pos['qty'])
-                shares = min(round(excess / float(pos['current_price']), 4), qty)
-                out.append({
-                    'type': 'OVER_POSITION_CAP',
-                    'action': 'TRIM_TO_CAP',
-                    'symbol': pos['symbol'],
-                    'trim_pct': round(shares / qty, 4) if qty else 0,
-                    'current_pct': pct,
-                    'cap_pct': cap,
-                    'shares_to_sell': shares,
-                    'reason': (f'{pct:.1%} of equity vs the {cap:.0%} cap '
-                               f'- trim {shares:,.2f} of {qty:,.2f} sh back to cap'),
-                })
+            try:
+                mv = float(pos['market_value'])
+                pct = mv / equity
+                cap = self.trim_rules['max_position_pct']
+                if pct > cap:
+                    # Trim WINNERS ONLY. Trimming is risk management on something that
+                    # has grown, never a reaction to weakness. An over-cap position that
+                    # is DOWN is left alone even though that leaves the cap breached,
+                    # because enforcing the cap on a loser sells it at a loss - the one
+                    # thing the trim path must not do. It remains an ADD candidate.
+                    pl = float(pos['unrealized_pl'])
+                    if not (pl > 0):  # NaN-safe: NaN > 0 is False
+                        print(f"  {pos['symbol']}: over cap ({pct:.1%} vs {cap:.0%}) but "
+                              f"down {pl:,.2f} - a loser, not trimming")
+                        continue
+                    if pos['symbol'] in pending_sells:
+                        print(f"  {pos['symbol']}: over cap but a cap trim is already "
+                              f"pending - skipping")
+                        continue
+                    target_mv = equity * cap
+                    excess = mv - target_mv
+                    qty = float(pos['qty'])
+                    shares = min(round(excess / float(pos['current_price']), 4), qty)
+                    out.append({
+                        'type': 'OVER_POSITION_CAP',
+                        'action': 'TRIM_TO_CAP',
+                        'symbol': pos['symbol'],
+                        'trim_pct': round(shares / qty, 4) if qty else 0,
+                        'current_pct': pct,
+                        'cap_pct': cap,
+                        'shares_to_sell': shares,
+                        'reason': (f'{pct:.1%} of equity vs the {cap:.0%} cap '
+                                   f'- trim {shares:,.2f} of {qty:,.2f} sh back to cap'),
+                    })
+            except Exception as e:
+                print(f"  {pos.get('symbol', '?')}: position_cap_signals SKIPPED - "
+                      f"{type(e).__name__}: {e}")
+                continue
         return out
 
     def add_signals(self) -> List[Dict]:
@@ -420,6 +435,21 @@ class PositionManager:
     def execute_trim(self, symbol: str, trim_pct: float, reason: str,
                      rung: Optional[float] = None, re_base: bool = False) -> bool:
         """Place a trim (fractional). Records the real order state, never assumes a fill."""
+        # Validate trim_pct is between 0 and 1
+        if not (0 < trim_pct <= 1) or trim_pct != trim_pct:
+            print(f"  {symbol}: invalid trim_pct {trim_pct} - must be in (0, 1]")
+            return False
+
+        # Never stack a second sell order while one is pending
+        try:
+            pending = {o['symbol'] for o in self.alpaca.get_open_orders()
+                       if str(o.get('side', '')).lower() == 'sell'}
+            if symbol in pending:
+                print(f"  {symbol}: a sell order is already pending - not stacking trim")
+                return False
+        except Exception:
+            pass  # fail open — if we can't check, proceed
+
         position = next((p for p in self.alpaca.get_positions() if p['symbol'] == symbol), None)
         if position is None:
             return False
@@ -428,6 +458,8 @@ class PositionManager:
         if not (qty > 0) or qty != qty:  # NaN or non-positive
             return False
         shares_to_sell = round(qty * trim_pct, 4)
+        # Cap at qty — never sell more than we hold
+        shares_to_sell = min(shares_to_sell, qty)
         if not (shares_to_sell > 0) or shares_to_sell != shares_to_sell:  # NaN or non-positive
             return False
 
@@ -608,7 +640,7 @@ class PositionManager:
                 print(f"    WOULD TRIM: {c['shares_to_sell']:,.2f} shares")
                 continue
             if self.execute_trim(c['symbol'], c['trim_pct'], c['reason'],
-                                 rung=c.get('cap_rung', 0.10), re_base=True):
+                                 rung=c.get('cap_rung', 0.10), re_base=False):
                 print(f"    TRIMMED: ordered {c['shares_to_sell']:,.2f} shares")
                 executed += 1
             else:

@@ -19,7 +19,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from trading_strategy_engine import (
-    BacktestEngine, MeanReversionStrategy, fetch_data
+    BacktestEngine, fetch_data
 )
 
 
@@ -115,10 +115,11 @@ class MarketAwareHybridStrategy:
         minus_dm[minus_dm < 0] = 0
         
         atr = tr.rolling(n).mean()
-        plus_di = 100 * (plus_dm.rolling(n).mean() / atr)
-        minus_di = 100 * (minus_dm.rolling(n).mean() / atr)
-        
-        dx = 100 * abs(plus_di - minus_di) / (plus_di + minus_di)
+        atr_safe = atr.replace(0, np.nan)
+        plus_di = 100 * (plus_dm.rolling(n).mean() / atr_safe)
+        minus_di = 100 * (minus_dm.rolling(n).mean() / atr_safe)
+        di_sum = (plus_di + minus_di).replace(0, np.nan)
+        dx = 100 * abs(plus_di - minus_di) / di_sum
         adx = dx.rolling(n).mean()
         
         return adx
@@ -150,7 +151,9 @@ class MarketAwareHybridStrategy:
         df['std'] = df['Close'].rolling(self.config["mr_lookback"]).std()
         df['upper_band'] = df['sma'] + self.config["mr_num_std"] * df['std']
         df['lower_band'] = df['sma'] - self.config["mr_num_std"] * df['std']
-        df['pct_b'] = (df['Close'] - df['lower_band']) / (df['upper_band'] - df['lower_band'])
+        bb_range = df['upper_band'] - df['lower_band']
+        df['pct_b'] = (df['Close'] - df['lower_band']) / bb_range.replace(0, np.nan)
+        df['pct_b'] = df['pct_b'].fillna(0.5)
         
         # ADX slope (rising or falling)
         df['adx_slope'] = df['adx'].diff(5)

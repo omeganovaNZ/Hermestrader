@@ -26,12 +26,12 @@ def calculate_technical_score(data: pd.DataFrame) -> Dict:
     latest = data.iloc[-1]
     price = float(latest['Close'])
     
-    # RSI
+    # RSI (guard against division by zero when loss == 0)
     delta = data['Close'].diff()
     gain = (delta.where(delta > 0, 0)).rolling(14).mean()
     loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
-    rs = gain / loss
-    rsi = float(100 - (100 / (1 + rs.iloc[-1])))
+    rs = gain / loss.replace(0, np.nan)
+    rsi = float(100 - (100 / (1 + rs.iloc[-1]))) if pd.notna(rs.iloc[-1]) else 100.0
     
     # Moving averages
     sma_50 = float(data['Close'].rolling(50).mean().iloc[-1])
@@ -39,17 +39,19 @@ def calculate_technical_score(data: pd.DataFrame) -> Dict:
     dist_50 = ((price / sma_50) - 1) * 100 if sma_50 > 0 else 0
     dist_200 = ((price / sma_200) - 1) * 100 if sma_200 > 0 else 0
     
-    # ADX
+    # ADX (with division-by-zero guards)
     plus_dm = data['High'].diff()
     minus_dm = -data['Low'].diff()
     plus_dm[plus_dm < 0] = 0
     minus_dm[minus_dm < 0] = 0
     tr = pd.concat([data['High'] - data['Low'], abs(data['High'] - data['Close'].shift(1)), abs(data['Low'] - data['Close'].shift(1))], axis=1).max(axis=1)
     atr = tr.rolling(14).mean()
-    plus_di = 100 * (plus_dm.rolling(14).mean() / atr)
-    minus_di = 100 * (minus_dm.rolling(14).mean() / atr)
-    dx = 100 * abs(plus_di - minus_di) / (plus_di + minus_di)
-    adx = float(dx.rolling(14).mean().iloc[-1])
+    atr_safe = atr.replace(0, np.nan)
+    plus_di = 100 * (plus_dm.rolling(14).mean() / atr_safe)
+    minus_di = 100 * (minus_dm.rolling(14).mean() / atr_safe)
+    di_sum = (plus_di + minus_di).replace(0, np.nan)
+    dx = 100 * abs(plus_di - minus_di) / di_sum
+    adx = float(dx.rolling(14).mean().iloc[-1]) if pd.notna(dx.rolling(14).mean().iloc[-1]) else 0.0
     
     # Bollinger Bands
     bb_middle = float(data['Close'].rolling(20).mean().iloc[-1])

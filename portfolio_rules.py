@@ -94,8 +94,9 @@ def theme_cap_check(symbol, added_value, positions, equity, max_pct=MAX_THEME_PC
     """(ok, reason) for a proposed buy of `added_value` dollars of `symbol`.
 
     Refuses when the buy would push the symbol's theme past `max_pct` of equity. A symbol
-    in no known theme is allowed through - the cap cannot constrain what it cannot classify
-    - and the reason says so.
+    in no known theme is REFUSED (fail-closed) - the alternative is a new name buying
+    through with no cap, which is exactly how the AI-hardware sleeve reached 75% of
+    long market value.
     """
     th = theme_of(symbol)
     if th is None:

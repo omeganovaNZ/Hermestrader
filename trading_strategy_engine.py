@@ -92,7 +92,8 @@ class BacktestEngine:
             
             # Execute signals
             if signal == 1 and position == 0:  # Buy
-                position = int(capital * 0.95 / price)  # Use 95% of capital
+                if price > 0:  # guard against division by zero
+                    position = int(capital * 0.95 / price)  # Use 95% of capital
                 if position > 0:
                     entry_price = price
                     entry_date = date
@@ -158,7 +159,9 @@ class BacktestEngine:
         
         # Max drawdown
         rolling_max = equity_series.expanding().max()
-        drawdown = (equity_series - rolling_max) / rolling_max
+        # Guard against division by zero when equity drops to zero
+        rolling_max_safe = rolling_max.replace(0, np.nan)
+        drawdown = (equity_series - rolling_max) / rolling_max_safe
         max_dd = drawdown.min() * 100
         
         # Win rate
@@ -254,9 +257,6 @@ class MACrossoverStrategy:
         
         # Signal on crossover
         df['signal'] = df['position'].diff().fillna(0).astype(int)
-        df.loc[df['signal'] == 0, 'signal'] = 0
-        df.loc[df['position'].diff() > 0, 'signal'] = 1   # Golden cross
-        df.loc[df['position'].diff() < 0, 'signal'] = -1  # Death cross
         return df
 
 
