@@ -7,13 +7,19 @@ earnings momentum, product launches, sector tailwinds, good technical setup)
 import os
 import sys
 import json
+import time
 import numpy as np
 import pandas as pd
 from datetime import datetime
 from typing import Dict, Optional
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.trading_strategy_engine import fetch_data
+from src.index_constituents import load_constituents
+
+# Parallelism: max concurrent data fetches (keep under Alpaca/yfinance rate limits)
+MAX_WORKERS = 5
 
 
 
@@ -226,67 +232,11 @@ def screen_stock(ticker: str, name: str, sector: str) -> Optional[Dict]:
 
 
 def run_screener():
-    """Run the stock screener on candidate stocks."""
+    """Run the stock screener on S&P 500 + Nasdaq-100 constituents."""
     
-    # Candidate stocks — mix of AI, semiconductor, biotech, healthcare
-    candidates = [
-        # Semiconductors / AI
-        ("MRVL", "Marvell Technology", "Semiconductors"),
-        ("AVGO", "Broadcom", "Semiconductors"),
-        ("TSM", "Taiwan Semiconductor", "Semiconductors"),
-        ("ASML", "ASML Holding", "Semiconductors"),
-        ("LRCX", "Lam Research", "Semiconductors"),
-        ("AMAT", "Applied Materials", "Semiconductors"),
-        ("KLAC", "KLA Corporation", "Semiconductors"),
-        ("SNPS", "Synopsys", "Semiconductors"),
-        ("CDNS", "Cadence Design", "Semiconductors"),
-        ("ANET", "Arista Networks", "Networking"),
-        
-        # AI / Cloud
-        ("CRWD", "CrowdStrike", "Cybersecurity"),
-        ("PANW", "Palo Alto Networks", "Cybersecurity"),
-        ("OKTA", "Okta", "Cybersecurity"),
-        ("DDOG", "Datadog", "Cloud"),
-        ("SNOW", "Snowflake", "Cloud"),
-        ("MDB", "MongoDB", "Cloud"),
-        ("NET", "Cloudflare", "Cloud"),
-        ("PLTR", "Palantir", "AI"),
-        ("AI", "C3.ai", "AI"),
-        ("SMCI", "Super Micro Computer", "AI Infrastructure"),
-        
-        # Biotech / Healthcare
-        ("LLY", "Eli Lilly", "Biotech"),
-        ("MRNA", "Moderna", "Biotech"),
-        ("IOVA", "Iovance", "Immunotherapy"),
-        ("KOD", "Kodiak Sciences", "Biotech"),
-        ("TXG", "10x Genomics", "Genomics"),
-        ("CRSP", "CRISPR Therapeutics", "Genomics"),
-        ("NTLA", "Intellia Therapeutics", "Genomics"),
-        ("BEAM", "Beam Therapeutics", "Genomics"),
-        ("EDIT", "Editas Medicine", "Genomics"),
-        ("VRTX", "Vertex Pharmaceuticals", "Biotech"),
-        
-        # Power / Energy
-        ("GEV", "GE Vernova", "Power"),
-        ("VICR", "Vicor", "Power Conversion"),
-        ("BE", "Bloom Energy", "Renewable Energy"),
-        ("ENPH", "Enphase Energy", "Renewable Energy"),
-        ("FSLR", "First Solar", "Renewable Energy"),
-        
-        # Space
-        ("RKLB", "Rocket Lab", "Space"),
-        ("ASTS", "AST SpaceMobile", "Satellites"),
-        ("LUNR", "Lunar", "Space"),
-        
-        # Memory
-        ("MU", "Micron", "Memory"),
-        ("SNDK", "Sandisk", "Memory"),
-        
-        # Optical
-        ("LITE", "Lumentum", "Optical"),
-        ("MXL", "MaxLinear", "Optical"),
-        ("COHR", "Coherent", "Optical"),
-    ]
+    # Load constituents from S&P 500 + Nasdaq-100
+    candidates = load_constituents()
+    print(f"  Screening {len(candidates)} stocks from S&P 500 + Nasdaq-100")
     
     print("=" * 100)
     print("  STOCK SCREENER — Early Growth Entry Detection")
@@ -295,14 +245,31 @@ def run_screener():
     print("=" * 100)
     
     results = []
-    
-    for ticker, name, sector in candidates:
-        result = screen_stock(ticker, name, sector)
-        if result:
-            results.append(result)
-            regime_label = result.get('regime', 'N/A')
-            strat_label = result.get('strategy_recommendation', 'N/A')
-            print(f"  {name} ({ticker}): Score {result['entry_score']}/100 — {result['rating']} | Regime: {regime_label} | Strategy: {strat_label}")
+    completed = 0
+    total = len(candidates)
+    start_time = time.time()
+
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        future_to_ticker = {
+            executor.submit(screen_stock, ticker, name, sector): ticker
+            for ticker, name, sector in candidates
+        }
+
+        for future in as_completed(future_to_ticker):
+            ticker = future_to_ticker[future]
+            completed += 1
+            try:
+                result = future.result()
+                if result:
+                    results.append(result)
+                    regime_label = result.get('regime', 'N/A')
+                    strat_label = result.get('strategy_recommendation', 'N/A')
+                    print(f"  [{completed}/{total}] {result['name']} ({ticker}): Score {result['entry_score']}/100 — {result['rating']} | Regime: {regime_label} | Strategy: {strat_label}")
+            except Exception as e:
+                print(f"  [{completed}/{total}] {ticker}: ERROR — {type(e).__name__}: {e}")
+
+    elapsed = time.time() - start_time
+    print(f"\n  Screened {total} stocks in {elapsed:.1f}s ({MAX_WORKERS} workers) — {len(results)} passed")
     
     # Sort by entry score
     results.sort(key=lambda x: x['entry_score'], reverse=True)
