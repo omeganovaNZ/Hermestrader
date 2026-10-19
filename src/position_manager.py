@@ -358,8 +358,8 @@ class PositionManager:
                         score = self.ensemble.generate_ensemble_signal(sym, "US_TECH").get('ensemble_score')
                         if score == score:
                             note = f' | ensemble {score:+.3f}'
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        print(f"  Ensemble score failed for {sym}: {type(e).__name__}: {e}")
                     out.append({
                         'type': 'ADD_CANDIDATE',
                         'action': 'REPORT_ONLY',
@@ -592,8 +592,8 @@ class PositionManager:
                     if opened is not None:
                         ref = datetime.now(opened.tzinfo) if opened.tzinfo else datetime.now()
                         held = f"{(ref - opened).days}d"
-                except Exception:
-                    pass
+                except Exception as e:
+                    held = "?"
                 print(f"  {sym:6}{float(pos['qty']):>9.2f}{avg:>11,.2f}{st['base_price']:>11,.2f}"
                       f"{now:>10,.2f}{st['gain_from_base']:>+9.1%}"
                       f"{st['distance_to_trim']:>+10.0%}{held:>7}"

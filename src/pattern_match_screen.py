@@ -81,7 +81,7 @@ def compute_technical_indicators(df):
     delta = df['Close'].diff()
     gain = (delta.where(delta > 0, 0)).rolling(14).mean()
     loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
-    rs = gain / loss
+    rs = gain / loss.replace(0, np.nan)
     rsi = float(100 - (100 / (1 + rs.iloc[-1])))
 
     # Moving averages
@@ -304,7 +304,7 @@ def main():
     print(f"\n--- STEP 2: Fetching current ({TODAY.date()}) data for screening universe ---")
 
     current_profiles = {}
-    universe_to_screen = [s for s in set(CURRENT_UNIVERSE) if s not in CURRENT_HOLDINGS]
+    universe_to_screen = [s for s in dict.fromkeys(CURRENT_UNIVERSE) if s not in CURRENT_HOLDINGS]
 
     for i, symbol in enumerate(universe_to_screen):
         try:

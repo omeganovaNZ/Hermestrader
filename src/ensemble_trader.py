@@ -322,7 +322,8 @@ class EnsembleTrader:
                 signals['technical'] = 0
                 signals['regime'] = 'unknown'
                 signals['adx'] = 0.0
-        except Exception:
+        except Exception as e:
+            print(f"  Technical signal failed for {symbol}: {type(e).__name__}: {e}")
             signals['technical'] = 0
             signals['regime'] = 'unknown'
             signals['adx'] = 0.0
@@ -365,7 +366,8 @@ class EnsembleTrader:
                     signals['momentum'] = 0
             else:
                 signals['momentum'] = 0
-        except Exception:
+        except Exception as e:
+            print(f"  Momentum failed for {symbol}: {type(e).__name__}: {e}")
             signals['momentum'] = 0
 
         # 5. Volatility
@@ -383,7 +385,8 @@ class EnsembleTrader:
                     signals['volatility'] = 0.25  # fallback: neutral (maps to vol_score=0)
             else:
                 signals['volatility'] = 0.25  # fallback: neutral (maps to vol_score=0)
-        except Exception:
+        except Exception as e:
+            print(f"  Volatility failed for {symbol}: {type(e).__name__}: {e}")
             signals['volatility'] = 0.25  # fallback: neutral (maps to vol_score=0)
         
         # Calculate ensemble score
@@ -448,8 +451,8 @@ class EnsembleTrader:
                 if mom_12m > 0.50 and data['Close'].iloc[-1] > ma200:
                     trend_override = True
                     signals['trend_override'] = True
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"  Trend override check failed for {symbol}: {type(e).__name__}: {e}")
         if not trend_override:
             signals['trend_override'] = False
         

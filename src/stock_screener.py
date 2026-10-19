@@ -156,7 +156,7 @@ def classify_regime(data: pd.DataFrame) -> Optional[Dict]:
     loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
     rs = gain / loss.replace(0, np.nan)
     rsi_series = 100 - (100 / (1 + rs))
-    rsi_avg = float(rsi_series.dropna().mean()) if not rsi_series.dropna().empty else 50.0
+    rsi_avg = float(rsi_series.dropna().mean()) if len(rsi_series.dropna()) > 0 else 50.0
     
     # Resample to monthly closes and compute positive months percentage
     monthly = data['Close'].resample('ME').last().dropna()
@@ -221,6 +221,7 @@ def screen_stock(ticker: str, name: str, sector: str) -> Optional[Dict]:
         return result
         
     except Exception as e:
+        print(f"  Screener error for {ticker}: {type(e).__name__}: {e}")
         return None
 
 

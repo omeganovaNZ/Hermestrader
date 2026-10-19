@@ -314,7 +314,7 @@ def plot_results(results: List[BacktestResult], benchmark: pd.DataFrame, output_
     # Plot drawdown
     for result in results:
         equity = result.equity_curve
-        rolling_max = equity.expanding().max()
+        rolling_max = equity.expanding().max().replace(0, np.nan)
         drawdown = (equity - rolling_max) / rolling_max * 100
         ax2.fill_between(drawdown.index, drawdown.values, 0, alpha=0.3, color=colors.get(result.strategy_name, None))
     
