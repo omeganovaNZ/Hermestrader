@@ -81,6 +81,17 @@ MARKET_CONFIGS = {
         "trend_ma": 50,
         "atr_lookback": 14,
     },
+    "POWER_ENERGY": {
+        "region": "US",
+        "industry": "Power/Energy",
+        "adx_lookback": 14,
+        "adx_threshold": 28,  # Energy trends are strong but cyclical
+        "adx_transition_low": 18,
+        "mr_lookback": 20,
+        "mr_num_std": 2.2,  # Wider bands — energy is more volatile
+        "trend_ma": 50,
+        "atr_lookback": 14,
+    },
 }
 
 

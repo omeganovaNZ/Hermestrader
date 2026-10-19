@@ -139,6 +139,52 @@ def calculate_technical_score(data: pd.DataFrame) -> Dict:
     }
 
 
+def classify_regime(data: pd.DataFrame) -> Optional[Dict]:
+    """Classify market regime based on RSI average and positive months percentage.
+    
+    Rules:
+      - RSIavg < 52 AND positive_months < 60%  → MEAN_REVERTING (favor active trading)
+      - RSIavg > 52 AND positive_months > 60%  → TRENDING (favor Buy & Hold)
+      - Otherwise → NEUTRAL
+    """
+    if data is None or len(data) < 50:
+        return None
+    
+    # Compute RSI series (14-period) and average over the lookback
+    delta = data['Close'].diff()
+    gain = (delta.where(delta > 0, 0)).rolling(14).mean()
+    loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
+    rs = gain / loss.replace(0, np.nan)
+    rsi_series = 100 - (100 / (1 + rs))
+    rsi_avg = float(rsi_series.dropna().mean()) if not rsi_series.dropna().empty else 50.0
+    
+    # Resample to monthly closes and compute positive months percentage
+    monthly = data['Close'].resample('ME').last().dropna()
+    monthly_returns = monthly.pct_change().dropna()
+    if len(monthly_returns) > 0:
+        positive_months_pct = float((monthly_returns > 0).sum() / len(monthly_returns) * 100)
+    else:
+        positive_months_pct = 0.0
+    
+    # Classify regime
+    if rsi_avg < 52 and positive_months_pct < 60:
+        regime = 'MEAN_REVERTING'
+        strategy = 'ACTIVE'
+    elif rsi_avg > 52 and positive_months_pct > 60:
+        regime = 'TRENDING'
+        strategy = 'HOLD'
+    else:
+        regime = 'NEUTRAL'
+        strategy = 'HOLD'
+    
+    return {
+        'regime': regime,
+        'strategy_recommendation': strategy,
+        'rsi_avg': rsi_avg,
+        'positive_months_pct': positive_months_pct,
+    }
+
+
 def screen_stock(ticker: str, name: str, sector: str) -> Optional[Dict]:
     """Screen a single stock for entry quality."""
     try:
@@ -150,6 +196,8 @@ def screen_stock(ticker: str, name: str, sector: str) -> Optional[Dict]:
         if tech is None:
             return None
         
+        regime_info = classify_regime(data)
+        
         # Determine entry rating
         if tech['entry_score'] >= 70:
             rating = "STRONG BUY"
@@ -160,13 +208,17 @@ def screen_stock(ticker: str, name: str, sector: str) -> Optional[Dict]:
         else:
             rating = "AVOID"
         
-        return {
+        result = {
             'ticker': ticker,
             'name': name,
             'sector': sector,
             'rating': rating,
             **tech,
         }
+        if regime_info:
+            result.update(regime_info)
+        
+        return result
         
     except Exception as e:
         return None
@@ -247,7 +299,9 @@ def run_screener():
         result = screen_stock(ticker, name, sector)
         if result:
             results.append(result)
-            print(f"  {name} ({ticker}): Score {result['entry_score']}/100 — {result['rating']}")
+            regime_label = result.get('regime', 'N/A')
+            strat_label = result.get('strategy_recommendation', 'N/A')
+            print(f"  {name} ({ticker}): Score {result['entry_score']}/100 — {result['rating']} | Regime: {regime_label} | Strategy: {strat_label}")
     
     # Sort by entry score
     results.sort(key=lambda x: x['entry_score'], reverse=True)
@@ -260,11 +314,15 @@ def run_screener():
     top_candidates = [r for r in results if r['entry_score'] >= 55]
     
     if top_candidates:
-        print(f"\n  {'Ticker':<8} {'Company':<25} {'Score':>6} {'RSI':>6} {'ADX':>6} {'Trend':<10} {'vs 200DMA':>10} {'3M Return':>10} {'Rating':<12}")
-        print(f"  {'─'*95}")
+        print(f"\n  {'Ticker':<8} {'Company':<25} {'Score':>6} {'RSI':>6} {'RSIavg':>6} {'PosMo%':>6} {'Trend':<10} {'Regime':<14} {'Strategy':<10} {'Rating':<12}")
+        print(f"  {'─'*110}")
         
         for r in top_candidates:
-            print(f"  {r['ticker']:<8} {r['name']:<25} {r['entry_score']:>6} {r['rsi']:>6.1f} {r['adx']:>6.1f} {r['trend']:<10} {r['dist_200']:>+9.1f}% {r['return_3m']:>+9.1f}% {r['rating']:<12}")
+            rsi_avg = r.get('rsi_avg', 0)
+            pos_mo = r.get('positive_months_pct', 0)
+            regime = r.get('regime', 'N/A')
+            strat = r.get('strategy_recommendation', 'N/A')
+            print(f"  {r['ticker']:<8} {r['name']:<25} {r['entry_score']:>6} {r['rsi']:>6.1f} {rsi_avg:>6.1f} {pos_mo:>6.1f} {r['trend']:<10} {regime:<14} {strat:<10} {r['rating']:<12}")
     else:
         print("\n  No candidates met the threshold (score >= 55).")
     
@@ -276,11 +334,15 @@ def run_screener():
     watchlist = [r for r in results if 40 <= r['entry_score'] < 55]
     
     if watchlist:
-        print(f"\n  {'Ticker':<8} {'Company':<25} {'Score':>6} {'RSI':>6} {'ADX':>6} {'Trend':<10} {'vs 200DMA':>10} {'3M Return':>10} {'Rating':<12}")
-        print(f"  {'─'*95}")
+        print(f"\n  {'Ticker':<8} {'Company':<25} {'Score':>6} {'RSI':>6} {'RSIavg':>6} {'PosMo%':>6} {'Trend':<10} {'Regime':<14} {'Strategy':<10} {'Rating':<12}")
+        print(f"  {'─'*110}")
         
         for r in watchlist:
-            print(f"  {r['ticker']:<8} {r['name']:<25} {r['entry_score']:>6} {r['rsi']:>6.1f} {r['adx']:>6.1f} {r['trend']:<10} {r['dist_200']:>+9.1f}% {r['return_3m']:>+9.1f}% {r['rating']:<12}")
+            rsi_avg = r.get('rsi_avg', 0)
+            pos_mo = r.get('positive_months_pct', 0)
+            regime = r.get('regime', 'N/A')
+            strat = r.get('strategy_recommendation', 'N/A')
+            print(f"  {r['ticker']:<8} {r['name']:<25} {r['entry_score']:>6} {r['rsi']:>6.1f} {rsi_avg:>6.1f} {pos_mo:>6.1f} {r['trend']:<10} {regime:<14} {strat:<10} {r['rating']:<12}")
     else:
         print("\n  No watchlist candidates found.")
     

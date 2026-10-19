@@ -49,3 +49,7 @@ trim_ladder_state.json
 # Generated data artefacts
 data/
 assets/
+
+# Cron output files
+structural_trends_brief_*.md
+weekly_performance_report.md

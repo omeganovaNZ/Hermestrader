@@ -1,7 +1,7 @@
 # Hermestrader — Alpaca Paper Trading Bot
 
 An automated paper-trading system for Alpaca Markets with a 5-layer ensemble signal
-engine, regime-adaptive strategy, position manager, and pattern-match watchlist generator.
+engine, 2-container strategy framework, position manager, and pattern-match watchlist generator.
 
 **This is NOT investment advice. Past performance does not guarantee future results.**
 
@@ -28,6 +28,35 @@ This is a personal trading system that:
 
 Signals require 3+ live layers (`MIN_LIVE_LAYERS`). Fewer forces HOLD.
 
+### 2-Container framework
+
+The system classifies each stock into one of two containers based on its technical profile:
+
+| Container | Strategy | Classification | Rationale |
+|-----------|----------|---------------|-----------|
+| **C1 — Core holdings** | Buy & Hold + trim rules | RSIavg > 52 AND positive months > 60% | Steady uptrends where active trading gives back return |
+| **C2 — Active trading** | Round-4 regime-adaptive | RSIavg < 52 AND positive months < 60% | Choppy/mean-reverting names where Round-4 has a verified edge |
+
+Stocks that don't match either container default to C1 (B&H — the safer option).
+
+**Verified backtest results (Oct 2026):**
+
+| Stock | Round-4 | Buy & Hold | Winner |
+|-------|---------|------------|--------|
+| BE | +1432% | +867% | Round-4 (+565pp) |
+| TSLA | +78% | +15% | Round-4 (+63pp) |
+| PLTR | +1300% | +1543% | B&H (-243pp) |
+| NVDA | +274% | +868% | B&H (-594pp) |
+
+Round-4 dominates on choppy/mean-reverting names (BE, TSLA). B&H dominates on steady uptrends
+(NVDA, LLY, VRTX). The container framework prevents catastrophic mismatches — it won't use
+Round-4 on a strong trend, and won't actively trade a steady uptrend.
+
+**Key finding from 50-stock analysis:** Sector is the strongest differentiator. Consumer
+Discretionary and Materials work best for active trading. Healthcare and Real Estate are toxic.
+Low-volatility stocks (< 30%) outperform on a relative basis. Moderate trade counts (5-15)
+produce the best absolute returns.
+
 ### Regime-adaptive rules (Round-4)
 
 - **Exit persistence**: 5 days in trends (ADX > 33), 4 days in ranging (ADX < 20), linear between
@@ -48,6 +77,13 @@ Signals require 3+ live layers (`MIN_LIVE_LAYERS`). Fewer forces HOLD.
 
 Round-4 dominates in choppy/mean-reverting markets (BE, TSLA) and roughly matches Buy & Hold
 on strong trends (RKLB, PLTR) with better risk-adjusted returns.
+
+### What doesn't work (tested and refuted)
+
+- **External regime classification for strategy selection** — rolling/online test showed no improvement (+231% vs +231% B&H, worse than pure Round-4 +291%). Round-4's own ADX-based detection is sufficient.
+- **Trend-riding overlay for uptrends** — tested and reverted. Made choppy stocks worse (BE: +1432% → +723%) without helping uptrends.
+- **Pre-filters on entries** — RSI<50 is actively destructive (vetoes 87% of entries). ADX>25, momentum>0, and vol>40% are all near-neutral to negative.
+- **4-container system** — Containers 3 (momentum) and 4 (bear defense) have no verified strategy to route to. Gold (GLD) is the best bear-market hedge (+20.6% during bear periods) but no implementation exists yet.
 
 ## Safety first
 

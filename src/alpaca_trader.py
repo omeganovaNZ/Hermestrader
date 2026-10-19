@@ -48,7 +48,7 @@ class AlpacaTrader:
             # High-conviction: MA beats B&H with better Sharpe
             ("RKLB", "Rocket Lab", "NZ_AUS"),           # MA +1156% vs B&H +345%
             ("MU", "Micron", "SEMICONDUCTOR_MEMORY"),   # MA Sharpe 1.330 vs B&H 1.219
-            ("BE", "Bloom Energy", "US_TECH"),          # MA +1359% vs B&H +1011%
+            ("BE", "Bloom Energy", "POWER_ENERGY"),      # MA +1359% vs B&H +1011%
             ("PK", "Park Hotels", "US_TECH"),           # MA +69% vs B&H +22%
             ("HD", "Home Depot", "US_TECH"),            # MA +6% vs B&H -1%
             
