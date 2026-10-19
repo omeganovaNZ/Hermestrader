@@ -14,7 +14,7 @@ This is a personal trading system that:
 - Manages positions with profit-taking and cap-trimming rules (Tom Nash framework)
 - Tracks portfolio themes/sleeves with enforced caps
 - Runs 10 cron jobs (daily scans, weekly reports, price alerts, pattern-match watchlist)
-- Places real orders in Alpaca paper trading ($100k account)
+- Places real orders in Alpaca paper trading (3 paper accounts, each $100k)
 
 ## Architecture
 
@@ -211,6 +211,16 @@ API_SECRET=your_secret_here
 ```
 
 Copy `alpaca_config.example.txt` and fill in your Alpaca paper-trading credentials.
+Multiple accounts are supported: `alpaca_config.txt`, `alpaca_config_test1.txt`,
+`alpaca_config_test3.txt` (all gitignored).
+
+## Current accounts
+
+| Account | ID | Status | Notes |
+|---------|-----|--------|-------|
+| Original | PA3JY31PP | 8 positions | Core portfolio, -0.97% P&L |
+| Test 1 | PA3JNJZ0X | 10 orders pending | Pattern-match picks (Oct 19) |
+| Test 3 | — | 10 orders pending | Screener top-10, score-weighted (Oct 19) |
 
 ## Pattern-match watchlist
 
