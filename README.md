@@ -1,7 +1,7 @@
 # Hermestrader — Alpaca Paper Trading Bot
 
 An automated paper-trading system for Alpaca Markets with a 5-layer ensemble signal
-engine, 2-container strategy framework, position manager, stock screener, and
+engine, position manager, stock screener, and
 pattern-match watchlist generator.
 
 **This is NOT investment advice. Past performance does not guarantee future results.**
@@ -35,24 +35,6 @@ Signals require 3+ live layers (`MIN_LIVE_LAYERS`). Fewer forces HOLD.
 (`src/index_constituents.py`, cached locally with 7-day refresh). Each stock gets a
 technical entry score (0-100) based on trend, ADX, RSI, distance from 200-DMA, and momentum.
 Runs daily at 08:00 NZT. Parallelized with 5 workers.
-
-### 2-Container framework
-
-| Container | Strategy | Classification | Rationale |
-|-----------|----------|---------------|-----------|
-| **C1 — Core holdings** | Buy & Hold + trim rules | RSIavg > 52 AND positive months > 60% | Steady uptrends where active trading gives back return |
-| **C2 — Active trading** | Round-4 regime-adaptive | RSIavg < 52 AND positive months < 60% | Choppy/mean-reverting names where Round-4 has a verified edge |
-
-Stocks that don't match either container default to C1 (B&H — the safer option).
-
-**Verified backtest results (Oct 2026):**
-
-| Stock | Round-4 | Buy & Hold | Winner |
-|-------|---------|------------|--------|
-| BE | +1432% | +867% | Round-4 (+565pp) |
-| TSLA | +78% | +15% | Round-4 (+63pp) |
-| PLTR | +1300% | +1543% | B&H (-243pp) |
-| NVDA | +274% | +868% | B&H (-594pp) |
 
 ### Regime-adaptive rules (Round-4)
 
