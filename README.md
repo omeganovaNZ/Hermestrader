@@ -50,7 +50,8 @@ Runs daily at 08:00 NZT. Parallelized with 5 workers.
 - **External regime classification** — no improvement over Round-4's own ADX detection
 - **Trend-riding overlay** — made choppy stocks worse without helping uptrends
 - **Pre-filters on entries** — RSI<50 vetoes 87% of entries; ADX>25 near-neutral
-- **4-container system** — Containers 3-4 have no verified strategy to route to
+- **Container system (2- and 4-container)** — routing stocks to a strategy by an external regime
+  classifier did not work as intended; the classifier and its output are removed
 - **Trim ladder (+50/+100/+150)** — replaced by +100%-on-pullback rule
 
 ## Safety first
