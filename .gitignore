@@ -1,7 +1,9 @@
 # Credentials & secrets
-alpaca_config.txt
-alpaca_config_test1.txt
-alpaca_config_test3.txt
+# Glob, not a filename list: naming each account file individually meant a NEW
+# account config was committable until someone remembered to add a line. The
+# example template is the only config file that belongs in git.
+alpaca_config*.txt
+!alpaca_config.example.txt
 *.env
 .env
 config.ini

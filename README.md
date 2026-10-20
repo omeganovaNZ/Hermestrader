@@ -149,8 +149,18 @@ python run_tests.py
 
 ## Configuration
 
-All configuration is in `alpaca_config.txt` (gitignored). Multiple accounts supported:
-`alpaca_config.txt`, `alpaca_config_test1.txt`, `alpaca_config_test3.txt`.
+All configuration is in `alpaca_config.txt` (gitignored). Multiple accounts are supported —
+one config file per account, each named after the account rather than by position:
+
+| Account | Number | Config file |
+|---|---|---|
+| Core | PA3JY31PP | `alpaca_config.txt` |
+| Pattern Match | PA3JNJZ0X | `alpaca_config_pattern_match.txt` |
+| Container Test 1 | PA3HV7XBX | `alpaca_config_container_test1.txt` |
+
+`accounts.json` is the canonical registry binding account name to number to config file. Read it
+rather than guessing which file holds which account. `.gitignore` excludes `alpaca_config*.txt`
+by glob, so a newly added account config is never committable.
 
 ## Pattern-match watchlist
 

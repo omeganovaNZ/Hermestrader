@@ -1,0 +1,28 @@
+{
+  "_purpose": "Canonical registry mapping each Alpaca paper account to the config file holding its credentials. No secrets live here — only identifiers. Update this file when an account is added or renamed; nothing else should hardcode an account number or a config filename.",
+  "_why": "The config filenames were once positional (test1/test3) while the accounts had names, so the file holding the account called 'Container Test 1' was alpaca_config_test3.txt and the account called 'Pattern Match' was in alpaca_config_test1.txt. Two sources disagreed about which account was which. Filenames are now named after the account, and this registry is the single place that binds name to number to file.",
+  "_secret_rule": "Credentials are NEVER stored here. Each account's API key and secret live only in its own alpaca_config*.txt, which .gitignore excludes via the alpaca_config*.txt glob.",
+  "accounts": [
+    {
+      "name": "Core",
+      "account_number": "PA3JY31PP",
+      "config_file": "alpaca_config.txt",
+      "role": "Primary book. This is what src/alpaca_trader.py and every cron job read by default.",
+      "notes": "Equity ~$99.3k, cash positive, no margin. 8 positions."
+    },
+    {
+      "name": "Pattern Match",
+      "account_number": "PA3JNJZ0X",
+      "config_file": "alpaca_config_pattern_match.txt",
+      "role": "Pattern-match strategy book.",
+      "notes": "Was alpaca_config_test1.txt. Uses margin (cash negative, long MV > equity). 10 positions."
+    },
+    {
+      "name": "Container Test 1",
+      "account_number": "PA3HV7XBX",
+      "config_file": "alpaca_config_container_test1.txt",
+      "role": "2-container framework test book (C1 B&H vs C2 active routing).",
+      "notes": "Was alpaca_config_test3.txt. Uses margin. 10 positions. This is the account referenced by data/pending_targets.json."
+    }
+  ]
+}
