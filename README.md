@@ -223,6 +223,24 @@ All configuration lives in `alpaca_config.txt` (gitignored). Multiple accounts a
 supported, one config file per account, each named after the account rather than
 by position:
 
+### Obtaining credentials
+
+1. Create an account at https://alpaca.markets and open the paper-trading
+   dashboard.
+2. Generate an API key pair (key and secret) for paper trading.
+3. Copy `alpaca_config.example.txt` to `alpaca_config.txt` and paste the key and
+   secret:
+
+   ```
+   API_KEY=your_key_here
+   API_SECRET=your_secret_here
+   ```
+
+4. Repeat for each additional account, naming the file after the account (see the
+   table below). Never commit any `alpaca_config*.txt` file.
+
+### Accounts
+
 | Account | Number | Config file |
 |---|---|---|
 | Core | PA3JY31PP | `alpaca_config.txt` |
