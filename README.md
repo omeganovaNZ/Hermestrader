@@ -286,6 +286,24 @@ python src/market_aware_strategy.py
 python src/trading_strategy_engine.py
 ```
 
+### After the dry run
+
+Once `position_manager.py --dry-run` completes, the natural progression is:
+
+1. **Stock screener** — `python src/stock_screener.py` (writes
+   `data/screener_results.json`).
+2. **Daily scan** — `python src/alpaca_trader.py` (places paper orders on buy
+   signals; uses the Core account by default).
+3. **Ensemble scan** — `python src/ensemble_trader.py` for the five-layer view
+   (slower: trains the machine learning (ML) model per symbol).
+4. **Pattern-match watchlist** — `python src/pattern_match_screen.py`.
+5. **Backtests** — `python src/market_aware_strategy.py` or
+   `python src/trading_strategy_engine.py`.
+
+Market orders placed by the daily scan fill at the next market open; re-run
+`position_manager.py --dry-run` afterwards to review the new positions. Never run
+`position_manager.py` without `--dry-run` unless you intend real paper orders.
+
 ## Running tests
 
 ```bash
