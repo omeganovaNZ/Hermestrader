@@ -6,11 +6,12 @@ yfinance>=0.2.50
 pandas>=2.0
 numpy>=1.24
 
-# Alpaca trading (paper + live)
-alpaca-trade-api>=3.0.0
+# Alpaca trading (paper + live) — alpaca-py provides the `alpaca.*` import path
+alpaca-py>=0.40.0
 
-# ML (optional — ensemble LightGBM layer)
+# ML (optional — ensemble LightGBM layer). LightGBM needs scikit-learn at runtime.
 lightgbm>=4.0.0
+scikit-learn>=1.3.0
 
 # Plotting (optional — backtest charts)
 matplotlib>=3.7.0
