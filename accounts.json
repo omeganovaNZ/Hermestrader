@@ -18,10 +18,10 @@
       "notes": "Was alpaca_config_test1.txt. Uses margin (cash negative, long MV > equity). 10 positions."
     },
     {
-      "name": "Container Test 1",
+      "name": "Satellite",
       "account_number": "PA3HV7XBX",
       "config_file": "alpaca_config_container_test1.txt",
-      "role": "Second paper book, holding a different selection from the Core book. The name is historical: it was created to test a 2-container framework (C1 buy-and-hold vs C2 active, routed by an external regime classifier), which was retired 2026-10-21 after it did not work as intended. The account kept its name; the framework it was named for is gone.",
+      "role": "Second paper book, holding a different selection from the Core book. Renamed from 'Container Test 1' (2026-10-21): that name referred to a retired two-container framework. The account number and config filename are unchanged for compatibility.",
       "notes": "Was alpaca_config_test3.txt. Uses margin. 10 positions. This is the account referenced by data/pending_targets.json."
     }
   ]

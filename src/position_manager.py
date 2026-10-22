@@ -61,21 +61,28 @@ class PositionManager:
         self.alpaca = AlpacaTrader()
         self.ensemble = EnsembleTrader()
 
-        self.trim_rules = {
-            # THE profit-trim rule (2026-10-17). One rung, one trigger, one size:
-            #   +100% ROI, held LONGER than 6 months, on a 2-day pullback, still above
-            #   the 200-day average.
-            # Nothing else ever trims invested capital. A trim re-bases the ROI reference
-            # to the trim price, so the next trim needs another +100% from THERE - one
-            # trim event per doubling, never a cascade.
-            'profit_trim_pct': 1.00,     # +100% ROI from the reference price
-            'profit_trim_size': 0.20,    # sell 20% of shares held
-            'min_hold_days': 183,        # held LONGER than 6 months
-            'pullback_days': 2,          # consecutive down days that trigger the trim
-            'trend_ma': 200,             # the pullback must still be above this average
-            'max_position_pct': 0.10,    # cap trim (Winners Only) - Nash 5-10%
-            'add_drawdown': 0.20,        # add when 20% off the 52-week high
+        # Built-in defaults (kept in sync with risk_rules.json).
+        _default_trim_rules = {
+            'profit_trim_pct': 1.00,
+            'profit_trim_size': 0.20,
+            'min_hold_days': 183,
+            'pullback_days': 2,
+            'trend_ma': 200,
+            'max_position_pct': 0.10,
+            'add_drawdown': 0.20,
         }
+        self.trim_rules = dict(_default_trim_rules)
+        # Optional external override.
+        _risk_rules_path = os.path.join(_HERE, "risk_rules.json")
+        try:
+            with open(_risk_rules_path) as _f:
+                _rr = json.load(_f)
+            if isinstance(_rr, dict) and isinstance(_rr.get("trim_rules"), dict):
+                for _k, _v in _rr["trim_rules"].items():
+                    if _k in self.trim_rules:
+                        self.trim_rules[_k] = _v
+        except (OSError, ValueError, TypeError):
+            pass
 
         self.trim_log = []
         self.trim_log_path = os.path.join(_HERE, "data", "trim_log.json")

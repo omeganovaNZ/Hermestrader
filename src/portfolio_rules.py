@@ -22,10 +22,24 @@ added. `test_portfolio_rules.py` asserts that every currently-held symbol is cla
 """
 
 import math
+import json
+import os
 
 # ── theme (sleeve) cap ──────────────────────────────────────────────────────────────────
 
 MAX_THEME_PCT = 0.40
+
+# Optional external overrides (fall back to the built-in values above).
+_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_RISK_RULES_PATH = os.path.join(_REPO_ROOT, "risk_rules.json")
+_THEMES_PATH = os.path.join(_REPO_ROOT, "themes.json")
+try:
+    with open(_RISK_RULES_PATH) as _f:
+        _rr = json.load(_f)
+    if isinstance(_rr, dict) and "MAX_THEME_PCT" in _rr:
+        MAX_THEME_PCT = float(_rr["MAX_THEME_PCT"])
+except (OSError, ValueError, TypeError):
+    pass
 
 # One theme per symbol. The AI_HARDWARE grouping deliberately matches the playbook's own
 # "AI-hardware sleeve" (MRVL, RKLB, MU, DDOG, AMD) even though RKLB is space and DDOG is
@@ -49,6 +63,15 @@ THEMES = {
     "REAL_ESTATE": {"PK", "DRH", "OUT"},
 }
 
+
+# Optional external theme map override (see themes.json).
+try:
+    with open(_THEMES_PATH) as _f:
+        _loaded_themes = json.load(_f)
+    if isinstance(_loaded_themes, dict):
+        THEMES = {str(k): set(v) for k, v in _loaded_themes.items()}
+except (OSError, ValueError, TypeError):
+    pass
 
 def theme_of(symbol):
     """The theme a symbol belongs to, or None when it is unclassified.

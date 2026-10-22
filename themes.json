@@ -1,0 +1,72 @@
+{
+  "AI_HARDWARE": [
+    "ALAB",
+    "AMAT",
+    "AMD",
+    "ANET",
+    "ARM",
+    "ASML",
+    "AVGO",
+    "CDNS",
+    "COHU",
+    "DDOG",
+    "DELL",
+    "INTC",
+    "KLAC",
+    "LRCX",
+    "MRVL",
+    "MU",
+    "MXL",
+    "NET",
+    "NVDA",
+    "PLTR",
+    "RKLB",
+    "SIMO",
+    "SMCI",
+    "SNDK",
+    "SNOW",
+    "SNPS",
+    "TSM"
+  ],
+  "POWER_ENERGY": [
+    "APA",
+    "BE",
+    "CVI",
+    "CVX",
+    "DINO",
+    "ENPH",
+    "FSLR",
+    "GEV",
+    "MPC",
+    "NEE",
+    "PSX",
+    "VICR",
+    "VLO",
+    "XOM"
+  ],
+  "BIOTECH_HEALTH": [
+    "BEAM",
+    "CRSP",
+    "EDIT",
+    "IOVA",
+    "KOD",
+    "LLY",
+    "MRNA",
+    "NTLA",
+    "RPRX",
+    "TVTX",
+    "TXG",
+    "VRTX"
+  ],
+  "CYBERSECURITY": [
+    "CRWD",
+    "OKTA",
+    "PANW",
+    "S"
+  ],
+  "REAL_ESTATE": [
+    "DRH",
+    "OUT",
+    "PK"
+  ]
+}
