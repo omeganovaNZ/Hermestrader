@@ -287,6 +287,24 @@ python src/market_aware_strategy.py
 python src/trading_strategy_engine.py
 ```
 
+### Turning screener results into a watchlist
+
+Two steps:
+
+```bash
+# 1. Run the screener (writes data/screener_results.json)
+python src/stock_screener.py
+
+# 2. Convert top candidates to watchlist.json (read by alpaca_trader.py)
+python src/screener_to_watchlist.py
+```
+
+The converter keeps `STRONG BUY` and `BUY` candidates (entry score 55 or
+higher), de-duplicates by ticker, maps sectors to market configs, and writes
+`watchlist.json`. Edit `watchlist.json` afterwards to add, remove, or re-classify
+symbols. `src/alpaca_trader.py` keeps its built-in list as a fallback when
+`watchlist.json` is absent.
+
 ### After the dry run
 
 Once `position_manager.py --dry-run` completes, the natural progression is:
