@@ -1,39 +1,412 @@
 [
-  {"ticker": "RKLB", "name": "Rocket Lab", "config": "NZ_AUS"},
-  {"ticker": "MU", "name": "Micron", "config": "SEMICONDUCTOR_MEMORY"},
-  {"ticker": "BE", "name": "Bloom Energy", "config": "POWER_ENERGY"},
-  {"ticker": "PK", "name": "Park Hotels", "config": "US_TECH"},
-  {"ticker": "HD", "name": "Home Depot", "config": "US_TECH"},
-  {"ticker": "MRVL", "name": "Marvell Technology", "config": "SEMICONDUCTOR_LOGIC"},
-  {"ticker": "DDOG", "name": "Datadog", "config": "US_TECH"},
-  {"ticker": "PLTR", "name": "Palantir", "config": "US_TECH"},
-  {"ticker": "CRWD", "name": "CrowdStrike", "config": "US_TECH"},
-  {"ticker": "MXL", "name": "MaxLinear", "config": "SEMICONDUCTOR_LOGIC"},
-  {"ticker": "SNOW", "name": "Snowflake", "config": "US_TECH"},
-  {"ticker": "LLY", "name": "Eli Lilly", "config": "US_TECH"},
-  {"ticker": "TXG", "name": "10x Genomics", "config": "US_TECH"},
-  {"ticker": "OKTA", "name": "Okta", "config": "US_TECH"},
-  {"ticker": "LITE", "name": "Lumentum", "config": "SEMICONDUCTOR_LOGIC"},
-  {"ticker": "SNPS", "name": "Synopsys", "config": "SEMICONDUCTOR_LOGIC"},
-  {"ticker": "ANET", "name": "Arista Networks", "config": "US_TECH"},
-  {"ticker": "NET", "name": "Cloudflare", "config": "US_TECH"},
-  {"ticker": "MRNA", "name": "Moderna", "config": "US_TECH"},
-  {"ticker": "TSM", "name": "Taiwan Semiconductor", "config": "SEMICONDUCTOR_LOGIC"},
-  {"ticker": "SMCI", "name": "Super Micro Computer", "config": "US_TECH"},
-  {"ticker": "VRTX", "name": "Vertex Pharmaceuticals", "config": "US_TECH"},
-  {"ticker": "ASML", "name": "ASML Holding", "config": "SEMICONDUCTOR_LOGIC"},
-  {"ticker": "PANW", "name": "Palo Alto Networks", "config": "US_TECH"},
-  {"ticker": "IOVA", "name": "Iovance", "config": "US_TECH"},
-  {"ticker": "KOD", "name": "Kodiak Sciences", "config": "US_TECH"},
-  {"ticker": "SNDK", "name": "Sandisk", "config": "SEMICONDUCTOR_MEMORY"},
-  {"ticker": "CDNS", "name": "Cadence Design", "config": "SEMICONDUCTOR_LOGIC"},
-  {"ticker": "NVDA", "name": "NVIDIA", "config": "SEMICONDUCTOR_LOGIC"},
-  {"ticker": "AMD", "name": "AMD", "config": "SEMICONDUCTOR_LOGIC"},
-  {"ticker": "GOOGL", "name": "Alphabet", "config": "US_TECH"},
-  {"ticker": "XOM", "name": "Exxon Mobil", "config": "US_TECH"},
-  {"ticker": "CVX", "name": "Chevron", "config": "US_TECH"},
-  {"ticker": "NEE", "name": "NextEra Energy", "config": "US_TECH"},
-  {"ticker": "CAT", "name": "Caterpillar", "config": "US_TECH"},
-  {"ticker": "GEV", "name": "GE Vernova", "config": "US_TECH"},
-  {"ticker": "RTX", "name": "RTX Corp", "config": "US_TECH"}
+  {
+    "ticker": "AAPL",
+    "name": "Apple Inc.",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "ABBV",
+    "name": "AbbVie",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "A",
+    "name": "Agilent Technologies",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "ABNB",
+    "name": "Airbnb",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "ABT",
+    "name": "Abbott Laboratories",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "TT",
+    "name": "Trane Technologies",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "EBAY",
+    "name": "eBay Inc.",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "GLW",
+    "name": "Corning Inc.",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "DOC",
+    "name": "Healthpeak Properties",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "ICE",
+    "name": "Intercontinental Exchange",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "IBM",
+    "name": "IBM",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "IT",
+    "name": "Gartner",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "NEM",
+    "name": "Newmont",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "WST",
+    "name": "West Pharmaceutical Services",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "BNY",
+    "name": "BNY Mellon",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "BRO",
+    "name": "Brown &amp; Brown",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "BRK.B",
+    "name": "Berkshire Hathaway",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "D",
+    "name": "Dominion Energy",
+    "config": "POWER_ENERGY"
+  },
+  {
+    "ticker": "MMM",
+    "name": "3M",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "V",
+    "name": "Visa Inc.",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "USB",
+    "name": "U.S. Bancorp",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "URI",
+    "name": "United Rentals",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "VEEV",
+    "name": "Veeva Systems",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "CAH",
+    "name": "Cardinal Health",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "CDNS",
+    "name": "Cadence Design Systems",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "CBOE",
+    "name": "Cboe Global Markets",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "CCL",
+    "name": "Carnival Corporation",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "HLT",
+    "name": "Hilton Worldwide",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "SWK",
+    "name": "Stanley Black &amp; Decker",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "AME",
+    "name": "Ametek",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "EQT",
+    "name": "EQT Corporation",
+    "config": "POWER_ENERGY"
+  },
+  {
+    "ticker": "ISRG",
+    "name": "Intuitive Surgical",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "MAA",
+    "name": "Mid-America Apartment Communities",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "MA",
+    "name": "Mastercard",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "LYV",
+    "name": "Live Nation Entertainment",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "NDSN",
+    "name": "Nordson Corporation",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "NEE",
+    "name": "NextEra Energy",
+    "config": "POWER_ENERGY"
+  },
+  {
+    "ticker": "PPL",
+    "name": "PPL Corporation",
+    "config": "POWER_ENERGY"
+  },
+  {
+    "ticker": "AOS",
+    "name": "A. O. Smith",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "APA",
+    "name": "APA Corporation",
+    "config": "POWER_ENERGY"
+  },
+  {
+    "ticker": "CARR",
+    "name": "Carrier Global",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "CASY",
+    "name": "Casey's",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "COO",
+    "name": "Cooper Companies (The)",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "COF",
+    "name": "Capital One",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "COHR",
+    "name": "Coherent Corp.",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "COIN",
+    "name": "Coinbase",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "CNP",
+    "name": "CenterPoint Energy",
+    "config": "POWER_ENERGY"
+  },
+  {
+    "ticker": "HIG",
+    "name": "Hartford (The)",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "HII",
+    "name": "Huntington Ingalls Industries",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "HD",
+    "name": "Home Depot (The)",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "IBKR",
+    "name": "Interactive Brokers",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "IRM",
+    "name": "Iron Mountain",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "RTX",
+    "name": "RTX Corporation",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "SPGI",
+    "name": "S&amp;P Global",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "TKO",
+    "name": "TKO Group Holdings",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "ADI",
+    "name": "Analog Devices",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "ACGL",
+    "name": "Arch Capital Group",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "ADBE",
+    "name": "Adobe Inc.",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "ACN",
+    "name": "Accenture",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "ADM",
+    "name": "Archer Daniels Midland",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "MRK",
+    "name": "Merck &amp; Co.",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "TROW",
+    "name": "T. Rowe Price",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "ARES",
+    "name": "Ares Management",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "ARE",
+    "name": "Alexandria Real Estate Equities",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "AVGO",
+    "name": "Broadcom",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "ATO",
+    "name": "Atmos Energy",
+    "config": "POWER_ENERGY"
+  },
+  {
+    "ticker": "APTV",
+    "name": "Aptiv",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "CVX",
+    "name": "Chevron Corporation",
+    "config": "POWER_ENERGY"
+  },
+  {
+    "ticker": "DAL",
+    "name": "Delta Air Lines",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "DG",
+    "name": "Dollar General",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "DELL",
+    "name": "Dell Technologies",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "FIS",
+    "name": "Fidelity National Information Services",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "HOOD",
+    "name": "Robinhood Markets",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "HRL",
+    "name": "Hormel Foods",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "HPE",
+    "name": "Hewlett Packard Enterprise",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "HPQ",
+    "name": "HP Inc.",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "NI",
+    "name": "NiSource",
+    "config": "POWER_ENERGY"
+  },
+  {
+    "ticker": "NOW",
+    "name": "ServiceNow",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "NRG",
+    "name": "NRG Energy",
+    "config": "POWER_ENERGY"
+  },
+  {
+    "ticker": "NOC",
+    "name": "Northrop Grumman",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "NKE",
+    "name": "Nike, Inc.",
+    "config": "US_TECH"
+  },
+  {
+    "ticker": "SPG",
+    "name": "Simon Property Group",
+    "config": "US_TECH"
+  }
 ]
