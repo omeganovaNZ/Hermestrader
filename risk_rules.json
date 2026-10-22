@@ -1,0 +1,12 @@
+{
+  "MAX_THEME_PCT": 0.40,
+  "trim_rules": {
+    "profit_trim_pct": 1.0,
+    "profit_trim_size": 0.2,
+    "min_hold_days": 183,
+    "pullback_days": 2,
+    "trend_ma": 200,
+    "max_position_pct": 0.1,
+    "add_drawdown": 0.2
+  }
+}

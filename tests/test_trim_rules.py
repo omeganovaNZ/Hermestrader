@@ -6,6 +6,11 @@ or run_position_management() - those place real orders.
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# This test touches a live Alpaca account. Gate it behind an explicit flag so it
+# does not fail in environments without credentials (including CI).
+if not os.getenv("ALPACA_LIVE_TESTS"):
+    print("SKIP  test_trim_rules (set ALPACA_LIVE_TESTS=1 to run with live Alpaca credentials)")
+    sys.exit(0)
 
 from src.position_manager import PositionManager
 
