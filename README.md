@@ -186,6 +186,7 @@ Hermestrader/
 ├── run_tests.py
 ├── accounts.json                 # canonical account registry (no secrets)
 ├── alpaca_config.example.txt     # credential template (committed)
+├── watchlist.json                # trading watchlist (editable; built-in default fallback)
 ├── src/
 │   ├── alpaca_trader.py          # Alpaca client, watchlist, order helpers
 │   ├── ensemble_trader.py        # five-layer ensemble + ML + sentiment

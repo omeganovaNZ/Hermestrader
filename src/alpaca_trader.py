@@ -91,6 +91,28 @@ class AlpacaTrader:
             ("RTX", "RTX Corp", "US_TECH"),
         ]
         
+        # Optional external watchlist override. The built-in list above is the
+        # default; if watchlist.json exists at the repo root it replaces it, so
+        # the watchlist can be edited without touching Python.
+        _wl_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                                "watchlist.json")
+        if os.path.exists(_wl_path):
+            try:
+                with open(_wl_path, "r") as _f:
+                    _data = json.load(_f)
+                _loaded = []
+                for _item in _data:
+                    if isinstance(_item, dict):
+                        _loaded.append((_item["ticker"], _item["name"],
+                                        _item.get("config", "US_TECH")))
+                    elif isinstance(_item, (list, tuple)) and len(_item) >= 3:
+                        _loaded.append((_item[0], _item[1], _item[2]))
+                if _loaded:
+                    self.watchlist = _loaded
+                    print(f"  Loaded {len(_loaded)} symbols from watchlist.json")
+            except (ValueError, OSError, KeyError, TypeError) as _e:
+                print(f"  WARNING: watchlist.json unreadable, using built-in default: {_e}")
+
         # Load previous trades log if exists
         self.trades_log_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "alpaca_trades_log.json")
         self.trades_log = []
