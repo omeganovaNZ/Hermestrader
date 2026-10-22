@@ -391,23 +391,26 @@ Generated artefacts (gitignored, under `data/`):
 
 ## Proposed changes
 
-The following are proposed, not yet applied. See `docs/suggestions.md` for the
-full list.
+Status of the original list after this branch's work:
 
-1. Correct `requirements.txt` to depend on `alpaca-py` and `scikit-learn`
-   (the code already imports the new SDK).
+1. Correct `requirements.txt` to depend on `alpaca-py` and `scikit-learn` — **done**.
 2. Add a setup script that verifies the environment, copies the credential
-   template, and runs the pure-rule tests.
+   template, and runs the pure-rule tests — proposed.
 3. Mock the Alpaca client in `tests/test_trim_rules.py` (or gate it behind a
-   live flag) so it does not require real credentials.
-4. Make `test_account_registry.py` tolerate missing, gitignored secret files or
-   document their creation in onboarding.
+   live flag) so it does not require real credentials — proposed (still needed
+   for CI).
+4. Make `test_account_registry.py` tolerate missing, gitignored secret files —
+   **done** (missing optional accounts are advisory; primary is required).
 5. Rename the historically named "Container Test 1" account to something that
-   reflects its current role.
+   reflects its current role — proposed (optional migration).
 6. Externalise watchlists, thresholds, theme maps, and paths into one config
-   file, keeping secrets separate.
-7. Add a licence file (currently "personal use only" in prose only).
-8. Add continuous integration that runs the pure-rule tests on every change.
+   file, keeping secrets separate — **partially done** (`watchlist.json` added;
+   thresholds and theme maps remain in code).
+7. Add a licence file (currently "personal use only" in prose only) — proposed.
+8. Add continuous integration that runs the pure-rule tests on every change —
+   proposed.
+
+See `docs/suggestions.md` for the full background.
 
 ## Glossary
 
