@@ -49,7 +49,7 @@ from src.alpaca_trader import AlpacaTrader
 from src.ensemble_trader import EnsembleTrader
 from src.trading_strategy_engine import fetch_data
 from src.portfolio_rules import (MAX_THEME_PCT, theme_exposure, unclassified_exposure,
-                             thesis_review)
+                             thesis_review, theme_cap_check_safe)
 
 _HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -118,6 +118,11 @@ class PositionManager:
             'trend_ma': 200,             # the pullback must still be above this average
             'max_position_pct': 0.10,    # cap trim (Winners Only) - Nash 5-10%
             'add_drawdown': 0.20,        # add when 20% off the 52-week high
+            'redeploy_target_pct': 0.08, # top up underweight holdings toward this
+            'redeploy_min_gap_pct': 0.01,# minimum gap (also floored at $1,000)
+            'redeploy_max_pct': 0.10,    # throttle per scan
+            'redeploy_reserve_pct': 0.01,# keep this much equity in cash
+            'redeploy_enabled': True,
         }
 
         self.trim_log = []
@@ -129,6 +134,17 @@ class PositionManager:
             except (ValueError, OSError):
                 print("  WARNING: trim_log.json unreadable - starting fresh")
                 self.trim_log = []
+
+        # Redeploy log: every top-up buy placed, keyed to this account (see state_slug).
+        self.redeploy_log = []
+        self.redeploy_log_path = os.path.join(_HERE, "data", f"redeploy_log{self._suffix}.json")
+        if os.path.exists(self.redeploy_log_path):
+            try:
+                with open(self.redeploy_log_path, 'r') as f:
+                    self.redeploy_log = json.load(f)
+            except (ValueError, OSError):
+                print("  WARNING: redeploy_log.json unreadable - starting fresh")
+                self.redeploy_log = []
 
         # Per-symbol ladder state: {"MRVL": {"base_price": 235.29, "rungs_fired": [0.5]}}
         self.ladder_state_path = os.path.join(_HERE, "data", f"trim_ladder_state{self._suffix}.json")
@@ -556,6 +572,148 @@ class PositionManager:
         except Exception:
             return False
 
+    # ── redeploy ────────────────────────────────────────────────────────────────────────
+
+    def redeploy_signals(self) -> List[Dict]:
+        """Top up underweight holdings toward the redeploy target using parked cash.
+
+        Pure-ish: reads account/positions/orders, applies the theme cap (fail closed),
+        throttles a single scan to redeploy_max_pct of equity and keeps a cash reserve.
+        Returns a list of {'symbol', 'notional'} dicts. Places no orders.
+        """
+        import math
+
+        if not self.trim_rules.get('redeploy_enabled', True):
+            return []
+
+        try:
+            account = self.alpaca.get_account()
+            equity = float(account['equity'])
+            cash = float(account['cash'])
+        except Exception:
+            return []
+        if not (equity > 0) or equity != equity:
+            return []
+
+        try:
+            positions = self.alpaca.get_positions()
+        except Exception:
+            return []
+
+        # open orders: fail open on query failure
+        try:
+            open_orders = self.alpaca.get_open_orders()
+        except Exception:
+            open_orders = []
+        pending_buys = {o['symbol'] for o in (open_orders or [])
+                        if str(o.get('side', '')).lower() == 'buy'}
+
+        target_pct = float(self.trim_rules.get('redeploy_target_pct', 0.08))
+        min_gap_pct = float(self.trim_rules.get('redeploy_min_gap_pct', 0.01))
+        max_pct = float(self.trim_rules.get('redeploy_max_pct', 0.10))
+        reserve_pct = float(self.trim_rules.get('redeploy_reserve_pct', 0.01))
+
+        target_value = equity * target_pct
+        min_gap = max(1000.0, equity * min_gap_pct)
+        throttle = equity * max_pct
+        reserve = equity * reserve_pct
+        deployable_cash = cash - reserve
+        if deployable_cash <= 0:
+            return []
+
+        # build candidates
+        candidates = []
+        for p in positions:
+            try:
+                sym = p['symbol']
+                mv = float(p['market_value'])
+                price = float(p['current_price'])
+            except (KeyError, TypeError, ValueError):
+                continue
+            if not (math.isfinite(mv) and math.isfinite(price)) or price <= 0:
+                continue
+            gap = target_value - mv
+            if gap < min_gap:
+                continue
+            if sym in pending_buys:
+                continue
+            # theme cap (fail closed)
+            try:
+                ok, _ = theme_cap_check_safe(sym, gap, positions, equity)
+            except Exception:
+                ok = False
+            if not ok:
+                continue
+            candidates.append((sym, gap))
+
+        # widest gap first
+        candidates.sort(key=lambda x: -x[1])
+
+        out = []
+        total_deployed = 0.0
+        for sym, gap in candidates:
+            if total_deployed >= throttle - 1e-9:
+                break
+            if deployable_cash - total_deployed <= 0:
+                break
+            amount = min(gap, throttle - total_deployed, deployable_cash - total_deployed)
+            if amount <= 0:
+                continue
+            out.append({'symbol': sym, 'notional': amount})
+            total_deployed += amount
+        return out
+
+    def execute_redeploy(self, symbol: str, notional, reason: str) -> bool:
+        """Place a top-up buy for `notional` dollars of a held symbol."""
+        try:
+            notional = float(notional)
+        except (TypeError, ValueError):
+            return False
+        import math
+        if not (notional > 0) or not math.isfinite(notional):
+            return False
+
+        position = next((p for p in self.alpaca.get_positions() if p['symbol'] == symbol), None)
+        if position is None:
+            return False
+
+        # pending buy blocks
+        try:
+            pending = {o['symbol'] for o in self.alpaca.get_open_orders()
+                       if str(o.get('side', '')).lower() == 'buy'}
+            if symbol in pending:
+                return False
+        except Exception:
+            pass
+
+        try:
+            price = float(position['current_price'])
+            if not (price > 0) or price != price:
+                return False
+            shares = notional / price
+            order = self.alpaca.place_buy_order(symbol, shares)
+            if order is None:
+                return False
+            status = str(getattr(order, 'status', 'unknown'))
+            self.redeploy_log.append({
+                'date': datetime.now().isoformat(),
+                'symbol': symbol,
+                'action': 'REDEPLOY',
+                'order_id': str(getattr(order, 'id', None)),
+                'order_status': status,
+                'fill_state': 'FILLED' if status.lower().endswith('filled') else 'PENDING',
+                'notional': round(float(notional), 2),
+                'shares': shares,
+                'reason': reason,
+            })
+            _tmp = self.redeploy_log_path + '.tmp'
+            with open(_tmp, 'w') as f:
+                json.dump(self.redeploy_log, f, indent=2)
+            os.replace(_tmp, self.redeploy_log_path)
+            return True
+        except Exception:
+            return False
+
     def thesis_break_exit(self, symbol: str, reason: str) -> bool:
         """Sell a position OUTRIGHT. Explicit call only - never triggered by price.
 
@@ -689,6 +847,27 @@ class PositionManager:
                 executed += 1
             else:
                 print("    TRIM FAILED")
+
+        print("-" * 80)
+        print("  REDEPLOY (top up underweight holdings)")
+        print("-" * 80)
+        try:
+            redeploys = self.redeploy_signals()
+        except Exception as e:
+            print(f"  redeploy_signals FAILED - {type(e).__name__}: {e}")
+            redeploys = []
+        if not redeploys:
+            print("  no redeployments to place")
+        for rd in redeploys:
+            print(f"  {rd['symbol']}: top up ${rd['notional']:,.2f}")
+            if dry_run:
+                print(f"    WOULD BUY: ${rd['notional']:,.2f} of {rd['symbol']}")
+                continue
+            if self.execute_redeploy(rd['symbol'], rd['notional'], "redeploy"):
+                print(f"    REDEPLOYED: ordered ${rd['notional']:,.2f} of {rd['symbol']}")
+                executed += 1
+            else:
+                print("    REDEPLOY FAILED")
 
         print(f"\n{'-' * 80}\n  THEME EXPOSURE (cap {MAX_THEME_PCT:.0%})\n{'-' * 80}")
         try:
