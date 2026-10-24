@@ -14,11 +14,11 @@ Two rules live here, both pure functions so they can be tested without a network
    deliberate rule ("at no other time do I want to trim what has been invested"), so this
    does NOT sell anything - it FLAGS positions for a human decision and reports them.
 
-LIMITATION, stated plainly: Alpaca's free tier provides no sector or industry field, so the
-theme map below is HAND-MAINTAINED. A symbol that is not listed is "unclassified" and no
-theme cap applies to it, so a new name in an existing theme will slip through until it is
-added. `test_portfolio_rules.py` asserts that every currently-held symbol is classified, and
-`unclassified_exposure()` reports whatever is unclassified so the gap stays visible.
+LIMITATION: Alpaca's free tier provides no sector or industry field, so the theme map
+below is maintained by hand from public filings. A symbol that is not listed is
+"unclassified" and no theme cap applies to it, so a new name slips through until it is
+added. `test_portfolio_rules.py` asserts that every currently-held symbol is classified,
+and `unclassified_exposure()` reports whatever is unclassified so the gap stays visible.
 """
 
 import math
@@ -27,26 +27,181 @@ import math
 
 MAX_THEME_PCT = 0.40
 
-# One theme per symbol. The AI_HARDWARE grouping deliberately matches the playbook's own
-# "AI-hardware sleeve" (MRVL, RKLB, MU, DDOG, AMD) even though RKLB is space and DDOG is
-# software - they were grouped because they MOVE TOGETHER (measured 0.53 mean pairwise
-# correlation), and correlation is what makes a sleeve a risk.
+# One theme per symbol. The map is a RISK map, not a sector map: a theme is a group of
+# names that MOVE TOGETHER, because correlation is what makes a sleeve a risk.
+#
+# HOW IT WAS BUILT (2026-10-22). Universe: 504 symbols - the screener's 500 plus every
+# position held in any of the three paper accounts. Window: 2024-10-01..2026-10-21, 515
+# daily returns. Correlation matrix -> average-linkage hierarchical clustering -> clusters
+# reviewed and named by industry -> membership assigned by seed-portfolio correlation
+# (each theme seeded with names whose industry is unambiguous) -> explicit industry
+# corrections where the two disagreed. Tooling: scratch/_themes_v4.py.
+#
+# 22 themes, 532 symbols, every symbol classified exactly once.
+#
+# The 504 above came from the screener universe. A further 24 names were carried over
+# from the previous map because they are NOT in that universe (VICR, TLN, OKLO, ENPH,
+# DINO, CVI, S, DRH, OUT, MXL, SNDK, ARM, ALAB, COHU, SIMO, NET, IOVA, TXG, CRSP,
+# NTLA, BEAM, EDIT, RPRX, TVTX). They were assigned by the same method - bars fetched,
+# correlated against every theme - and the measurement agreed with the industry reading
+# in every case: NET +0.539 and S +0.602 to CYBERSECURITY, DINO +0.485 and CVI +0.375 to
+# POWER_ENERGY, COHU +0.516 / ARM +0.472 / SIMO +0.411 / ALAB +0.408 / MXL +0.398 to
+# AI_HARDWARE, OKLO +0.361 to POWER_FOR_AI. Where the measurement was weak the industry
+# reading was used and the name is flagged: ENPH is the weakest fit on the whole map
+# (best measured AI_HARDWARE +0.223, second MATERIALS +0.196, POWER_FOR_AI +0.172 - it is
+# a solar microinverter maker, not a data-centre power name) and is kept in POWER_FOR_AI
+# only because that is the nearest power-equipment sleeve. DRH and OUT are REITs;
+# BEAM/CRSP/EDIT/NTLA/TVTX/IOVA/RPRX are clinical-stage biotechs. Tooling:
+# scratch/_add_dropped2.py.
+#
+# A further four screener symbols were added 2026-10-22 after test_the_whole_screener_universe
+# _is_classified caught them: FDXF (FedEx Freight - INDUSTRIALS), HONA (Honeywell Aerospace -
+# AEROSPACE_DEFENSE), Q (Qnity Electronics, the DuPont semiconductor-materials spinoff -
+# AI_HARDWARE), SKYD (Skydance, the Paramount/Warner Bros. Discovery combine -
+# COMMUNICATION_SERVICES). All four are recent listings or spinoffs with NO price history, so
+# unlike every other entry they could not be measured - they are assigned by industry alone.
+# That is the one place the map rests on a description rather than a correlation, and it is
+# worth revisiting once they have a year of bars.
+#
+# COHERENCE (mean pairwise correlation INSIDE each theme, same window) - the number that
+# says whether a sleeve is a real risk factor or just a label:
+#   CYBERSECURITY +0.672        FINANCIALS +0.643       REGULATED_UTILITIES +0.599
+#   INSURANCE +0.561            POWER_ENERGY +0.535      AI_HARDWARE +0.442
+#   REIT +0.441                 POWER_FOR_AI +0.439      INDUSTRIALS +0.389
+#   AEROSPACE_DEFENSE +0.383    AI_SOFTWARE +0.365       MEDTECH +0.346
+#   MEGA_INTERNET +0.347        CONSUMER_STAPLES +0.339 MATERIALS +0.339
+#   BIG_PHARMA +0.328           FINTECH +0.309           CONSUMER_DISCRETIONARY +0.309
+#   HIGH_BETA_TECH +0.276       COMMUNICATION_SERVICES +0.260
+#   HEALTHCARE_SERVICES +0.256  HEALTHCARE_INSURERS +0.462
+# The weak ones are weak honestly: COMMUNICATION_SERVICES and HEALTHCARE_SERVICES are
+# closer to "everything in this industry" than to one risk factor. They are kept whole
+# because splitting them would create 10-name sleeves the 40% cap could never bind.
+#
+# THE RKLB CASE - industry and correlation disagree, and the map follows the correlation.
+# RKLB is an aerospace/launch/satellite-components business: "space exploration, launch
+# services, satellite components", in the aerospace & defense industry. It sat in
+# AI_HARDWARE. Measured, its correlation is +0.360 with AI_HARDWARE, +0.378 with
+# POWER_FOR_AI, and highest of all with the high-beta tech group (+0.44) - its nearest
+# neighbours are PLTR, DDOG, SNOW, COIN, HOOD, TSLA, APP, AXON. Industry says defence;
+# price behaviour says high-beta tech. It is in HIGH_BETA_TECH, because the cap exists to
+# bound CORRELATED exposure, and correlating RKLB with MRVL/MU/NVDA would understate the
+# risk it adds to a book that already holds TSLA and PLTR. Flagged here because the
+# industry reading is not wrong - it is simply not the risk axis.
+#
+# POWER_FOR_AI vs POWER_ENERGY, kept separate although they correlate. POWER_FOR_AI is power
+# INFRASTRUCTURE whose demand is driven by AI/data-centre load; POWER_ENERGY is fuel
+# PRODUCERS whose driver is the commodity. Measured each name against the mean of both
+# sleeves (tools: scratch/power_for_ai_membership.py), corr vs AI_HARDWARE / vs POWER_ENERGY:
+#   VRT +0.481/0.122  ETN +0.500/0.177  PWR +0.430/0.167  GEV +0.424/0.118
+#   CEG +0.368/0.119  BE +0.363/0.149   NRG +0.338/0.167  VST +0.316/0.147
+# ...against the fuel producers, which track energy by a wide margin:
+#   MPC 0.149/0.492   PSX 0.139/0.490   VLO 0.140/0.487   CVX 0.020/0.430  XOM -0.019/0.418
+# Every member above tracks AI by >= 0.17 and energy by <= 0.18. The split is clean.
+# BE (102% annualised vol) and GEV (53%) are semis-like in volatility, not utility-like:
+# the oil/gas names run ~29% and AI hardware ~55%.
+#
+# TICKER COLLISIONS RESOLVED (Alpaca's free tier has no sector field, so names were read
+# from filings): P = Everpure, Inc. (formerly Pure Storage) - AI-era data storage hardware,
+# hence AI_HARDWARE. KOD = Kodiak Sciences - a clinical-stage eye-disease biotech, hence
+# BIG_PHARMA, NOT the lithium junior that shares the ticker on the news feed. MPC = Marathon
+# Petroleum. SPR is absent because Spirit AeroSystems was acquired by Boeing and delisted.
 THEMES = {
     "AI_HARDWARE": {
-        "MRVL", "MU", "AMD", "NVDA", "AVGO", "TSM", "ASML", "AMAT", "LRCX", "KLAC",
-        "SNPS", "CDNS", "MXL", "SNDK", "SMCI", "ANET", "ARM", "DELL", "ALAB", "COHU",
-        "INTC", "SIMO", "RKLB", "DDOG", "NET", "SNOW", "PLTR",
+        "ADI", "AMAT", "AMD", "ANET", "APH", "ASML", "AVGO", "CDW", "CIEN", "COHR",
+        "CSCO", "DELL", "FFIV", "FIX", "FLEX", "GLW", "GNRC", "HPE", "HPQ", "HUBB",
+        "INTC", "JBL", "JCI", "KEYS", "KLAC", "LITE", "LRCX", "MCHP", "MPWR", "MRVL",
+        "MSI", "MU", "NTAP", "NVDA", "NXPI", "ON", "P", "QCOM", "STX", "SWKS", "TEL",
+        "TER", "TSM", "TXN", "WDC", "ALAB", "ARM", "COHU", "MXL", "Q", "SIMO", "SNDK",
+    },
+    "AI_SOFTWARE": {
+        "ACN", "ADBE", "ADP", "ADSK", "AKAM", "APP", "BR", "CDNS", "CPRT", "CRM",
+        "CSGP", "CTSH", "DDOG", "GDDY", "GEN", "IBM", "INTU", "IT", "JKHY", "NOW",
+        "ORCL", "PAYX", "PLTR", "PTC", "ROP", "SNOW", "SNPS", "TWLO", "TYL", "VEEV",
+        "WDAY",
+    },
+    "CYBERSECURITY": {"CRWD", "FTNT", "NET", "OKTA", "PANW", "S"},
+    "POWER_FOR_AI": {
+        "AES", "BE", "CEG", "ENPH", "ETN", "FSLR", "GE", "GEV", "NRG", "OKLO", "PWR",
+        "TLN", "TT", "VICR", "VRT", "VST",
     },
     "POWER_ENERGY": {
-        "BE", "GEV", "VICR", "ENPH", "FSLR", "NEE", "XOM", "CVX", "MPC", "PSX",
-        "VLO", "DINO", "CVI", "APA",
+        "APA", "BKR", "COP", "CVX", "DVN", "EOG", "EQT", "EXE", "FANG", "HAL", "KMI",
+        "MPC", "OKE", "OXY", "PSX", "SLB", "TPL", "TRGP", "VLO", "WMB", "XOM",
+        "CVI", "DINO",
     },
-    "BIOTECH_HEALTH": {
-        "LLY", "MRNA", "IOVA", "KOD", "TXG", "CRSP", "NTLA", "BEAM", "EDIT", "VRTX",
+    "REGULATED_UTILITIES": {
+        "AEE", "AEP", "ATO", "AWK", "CMS", "CNP", "D", "DTE", "DUK", "ED", "EIX", "ES",
+        "ETR", "EVRG", "EXC", "FE", "LNT", "NEE", "NI", "PCG", "PEG", "PNW", "PPL", "SO",
+        "SRE", "WEC", "XEL",
+    },
+    "FINANCIALS": {
+        "AMP", "APO", "ARES", "AXP", "BAC", "BEN", "BLK", "BNY", "BX", "C", "CBRE",
+        "CFG", "COF", "FITB", "GS", "HBAN", "IVZ", "JPM", "KEY", "KKR", "MET", "MS",
+        "MTB", "NTRS", "PFG", "PNC", "PRU", "RF", "RJF", "SCHW", "STT", "SYF", "TFC",
+        "TROW", "USB", "WFC",
+    },
+    "INSURANCE": {
+        "ACGL", "AFL", "AIG", "AIZ", "AJG", "ALL", "AON", "BRO", "CB", "CINF", "EG",
+        "ERIE", "GL", "HIG", "L", "MRSH", "PGR", "TRV", "WRB", "WTW",
+    },
+    "FINTECH": {
+        "AI", "CBOE", "CME", "COIN", "CPAY", "CVNA", "EFX", "FDS", "FICO", "FIS",
+        "FISV", "GPN", "HOOD", "IBKR", "ICE", "MA", "MCO", "MSCI", "NDAQ", "PYPL",
+        "RDDT", "SPGI", "V", "VRSK", "VRSN", "XYZ",
+    },
+    "BIG_PHARMA": {
+        "ABBV", "AMGN", "BIIB", "BMY", "GILD", "INCY", "JNJ", "KOD", "LLY", "MRK",
+        "MRNA", "PFE", "REGN", "VRTX", "VTRS", "BEAM", "CRSP", "EDIT", "IOVA", "NTLA",
         "RPRX", "TVTX",
     },
-    "CYBERSECURITY": {"CRWD", "PANW", "OKTA", "S"},
-    "REAL_ESTATE": {"PK", "DRH", "OUT"},
+    "MEDTECH": {
+        "A", "ABT", "ALGN", "BAX", "BDX", "BSX", "COO", "CRL", "DGX", "DHR", "DXCM",
+        "EW", "GEHC", "HSIC", "IDXX", "ILMN", "IQV", "ISRG", "LH", "MDT", "MTD", "PODD",
+        "RMD", "RVTY", "SOLV", "STE", "SYK", "TECH", "TMO", "TXG", "VLTO", "WAT", "WST",
+        "ZBH", "ZTS",
+    },
+    "HEALTHCARE_INSURERS": {"CI", "CNC", "ELV", "HUM", "UNH"},
+    "HEALTHCARE_SERVICES": {"CAH", "COR", "CVS", "DVA", "HCA", "MCK", "UHS"},
+    "MEGA_INTERNET": {
+        "AAPL", "ABNB", "AMZN", "BKNG", "DASH", "EBAY", "EXPE", "GOOG", "GOOGL",
+        "META", "MSFT", "NFLX", "NWS", "NWSA", "UBER",
+    },
+    "COMMUNICATION_SERVICES": {
+        "CHTR", "CMCSA", "DIS", "FOX", "FOXA", "OMC", "SKYD", "T", "TKO", "TMUS", "TTWO", "VZ",
+    },
+    "HIGH_BETA_TECH": {"AXON", "RKLB", "SMCI", "TSLA"},
+    "CONSUMER_STAPLES": {
+        "CHD", "CL", "CLX", "COST", "EL", "GIS", "HRL", "HSY", "KDP", "KHC", "KMB", "KO",
+        "KR", "KVUE", "MDLZ", "MKC", "MNST", "MO", "PEP", "PG", "PM", "SJM", "STZ", "SYY",
+        "TSN", "WMT",
+    },
+    "CONSUMER_DISCRETIONARY": {
+        "APTV", "AZO", "BBY", "CASY", "CCL", "CMG", "DAL", "DECK", "DG", "DHI", "DLTR",
+        "DPZ", "DRI", "F", "GM", "GRMN", "HAS", "HD", "HLT", "LEN", "LOW", "LULU", "LUV",
+        "LVS", "LYV", "MAR", "MCD", "MGM", "NCLH", "NKE", "NVR", "ORLY", "PHM", "RCL",
+        "RL", "ROST", "SBUX", "TGT", "TJX", "TPR", "TSCO", "UAL", "ULTA", "WSM", "WYNN",
+        "YUM",
+    },
+    "INDUSTRIALS": {
+        "ALLE", "AME", "CARR", "CAT", "CHRW", "CMI", "CSX", "CTAS", "DE", "DOV", "ECHO",
+        "EME", "EMR", "EXPD", "FAST", "FDX", "FERG", "FTV", "GWW", "HON", "IEX", "IR",
+        "ITW", "J", "JBHT", "LII", "MMM", "NDSN", "NSC", "ODFL", "OTIS", "PCAR", "PH",
+        "PNR", "ROK", "ROL", "RSG", "SNA", "TDY", "TRMB", "UNP", "UPS", "URI", "WAB",
+        "WM", "XYL", "ZBRA", "FDXF",
+    },
+    "AEROSPACE_DEFENSE": {
+        "BA", "GD", "HII", "HONA", "HWM", "LDOS", "LHX", "LMT", "NOC", "RTX", "TDG", "TXT",
+    },
+    "REIT": {
+        "AMT", "ARE", "BXP", "CCI", "CPT", "CTRE", "DLR", "DOC", "EQIX", "ESS", "EXR",
+        "FRT", "HST", "INVH", "IRM", "KIM", "MAA", "O", "PK", "PLD", "PSA", "REG",
+        "SBAC", "SPG", "UDR", "VICI", "VMRK", "VTR", "WELL", "DRH", "OUT",
+    },
+    "MATERIALS": {
+        "ADM", "ALB", "AMCR", "AOS", "APD", "AVY", "BALL", "BG", "CF", "CRH", "DD",
+        "DOW", "ECL", "FCX", "GPC", "IFF", "IP", "LIN", "LYB", "MAS", "MLM", "MOS",
+        "NEM", "NUE", "PKG", "PPG", "SHW", "STLD", "SW", "SWK", "VMC", "WY",
+    },
 }
 
 

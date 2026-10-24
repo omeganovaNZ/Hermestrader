@@ -30,6 +30,32 @@ def test_every_held_symbol_is_classified():
     assert unclassified == [], f"held but unclassified: {unclassified} - add them to THEMES"
 
 
+def test_the_whole_screener_universe_is_classified():
+    """The theme cap is the only thing stopping a sleeve running away, and an unclassified
+    symbol is refused by the buy path - so a name missing from THEMES is INVISIBLE to the cap,
+    not merely unlabelled.
+
+    This test exists because of a real regression: the map was rebuilt from a 504-name universe
+    and 24 names the previous map had carried (VICR, TLN, OKLO, ENPH, DINO, CVI, S, DRH, OUT,
+    MXL, SNDK, ARM, ALAB, COHU, SIMO, NET, IOVA, TXG, CRSP, NTLA, BEAM, EDIT, RPRX, TVTX)
+    silently became unclassified. NET and S are the ones that mattered: a cloud-security and a
+    security name, both buying through a cap that could not see them.
+
+    Skips if the screener output is absent (it is gitignored, so a fresh clone has none)."""
+    import json
+    path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                        'data', 'screener_results.json')
+    if not os.path.exists(path):
+        print("    (skipped - no screener_results.json in this checkout)")
+        return
+    rows = json.load(open(path, encoding='utf-8'))
+    tickers = sorted({r['ticker'] for r in rows})
+    missing = [t for t in tickers if pr.theme_of(t) is None]
+    assert missing == [], (
+        f"{len(missing)} screener symbols are unclassified and so invisible to the theme "
+        f"cap: {missing} - add them to THEMES")
+
+
 def test_themes_do_not_overlap():
     seen = {}
     for name, members in pr.THEMES.items():
@@ -46,7 +72,7 @@ def test_theme_exposure_computes_percentages():
     assert abs(exp['AI_HARDWARE']['value'] - 40_000) < 1e-6
     assert abs(exp['AI_HARDWARE']['pct'] - 0.40) < 1e-9
     assert exp['AI_HARDWARE']['symbols'] == ['MRVL', 'MU']
-    assert abs(exp['REAL_ESTATE']['pct'] - 0.15) < 1e-9
+    assert abs(exp['REIT']['pct'] - 0.15) < 1e-9
 
 
 def test_unclassified_exposure_is_visible():
@@ -85,7 +111,7 @@ def test_a_buy_in_another_theme_is_allowed_even_when_one_is_over():
                  pos('AMD', 100, 100, 100), pos('DDOG', 100, 50, 50)]    # 75% AI
     ok, why = pr.theme_cap_check('LLY', 5_000, positions, EQUITY)
     assert ok is True, why
-    assert 'BIOTECH_HEALTH' in why
+    assert 'BIG_PHARMA' in why
 
 
 def test_unclassified_symbol_fails_closed():

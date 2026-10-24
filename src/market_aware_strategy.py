@@ -92,6 +92,32 @@ MARKET_CONFIGS = {
         "trend_ma": 50,
         "atr_lookback": 14,
     },
+    "POWER_FOR_AI": {
+        # Power infrastructure sold to AI/data-centre load: generation (CEG, TLN, NRG, OKLO),
+        # turbines and grid (GEV, PWR, ETN), fuel cells (BE), power conversion (VICR),
+        # data-centre power/cooling (VRT). Not fuel producers - those stay in POWER_ENERGY.
+        #
+        # The threshold is FITTED, not chosen by taste. Swept 24/28/30/33/36 over 2 years on
+        # this sleeve's own 10 names (scratch/power_for_ai_sweep.py), $100k, 0.1% commission:
+        #   thr 24  mean +131.6%  median +42.0%  Sharpe 0.688  maxDD -43.5%  beats B&H 2/10
+        #   thr 28  mean +128.0%  median +34.8%  Sharpe 0.690  maxDD -39.4%  beats B&H 2/10
+        #   thr 30  mean +120.7%  median +30.8%  Sharpe 0.705  maxDD -39.0%  beats B&H 3/10
+        #   thr 33  mean +105.0%  median +23.9%  Sharpe 0.545  maxDD -38.6%  beats B&H 0/10
+        #   thr 36  mean +107.2%  median +22.2%  Sharpe 0.554  maxDD -37.1%  beats B&H 1/10
+        # 24-30 is a plateau and there is a CLIFF at 33 - which is exactly what BE was using
+        # while it sat on US_TECH (threshold 33): the worst Sharpe of the sweep and not one
+        # name beating buy-and-hold. 30 taken here for the best Sharpe and the best
+        # beats-B&H count; 28 is statistically indistinguishable (Sharpe 0.690 vs 0.705).
+        "region": "US",
+        "industry": "Power for AI",
+        "adx_lookback": 14,
+        "adx_threshold": 30,
+        "adx_transition_low": 18,
+        "mr_lookback": 20,
+        "mr_num_std": 2.2,  # BE 102% and OKLO 101% annualised vol - wide bands, like energy
+        "trend_ma": 50,
+        "atr_lookback": 14,
+    },
 }
 
 
