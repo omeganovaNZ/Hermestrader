@@ -45,6 +45,15 @@ Runs daily at 08:00 NZT. Parallelized with 5 workers.
 - **Volatility-scaled momentum bypass**: 20-day momentum > 12% (high-vol) or 15% (low-vol)
 - **Frequency cap**: 2-4 trades/week depending on regime
 
+### Position management (Tom Nash framework)
+
+- **Profit trim**: +100% ROI, held > 6 months, 2 down days, still above the 200-day → sell 20%
+- **Cap trim**: any position above 10% of equity is trimmed back to the cap — **winners only**
+- **Redeploy**: cash freed by trims is topped up into underweight holdings (target 8%), with a
+  per-scan throttle, a cash reserve, the theme cap still binding, and no stacking on pending
+  orders. Pinned by `tests/test_redeploy.py`.
+- **Add candidates** and **thesis review** are report-only; outright exits are never automatic.
+
 ### What doesn't work (tested and refuted)
 
 - **External regime classification** — no improvement over Round-4's own ADX detection
@@ -56,7 +65,8 @@ Runs daily at 08:00 NZT. Parallelized with 5 workers.
 
 ## Safety first
 
-- **Dry-run default**: `position_manager.py` places real orders. Always test with `--dry-run` first.
+- **Dry-run is opt-in**: `position_manager.py` places real orders by default. Pass `--dry-run`
+  to report what it would do without placing anything.
 - **No credential commits**: `alpaca_config.txt` is gitignored. Verified clean.
 - **Public repo warning**: This repo is public. No secrets should ever be committed.
 - **Theme cap enforced**: AI-hardware sleeve capped at 40% of equity (fail-closed).
@@ -92,20 +102,28 @@ Hermestrader/
 │   ├── pattern_match_screen.py
 │   └── trading_strategy_engine.py
 ├── tests/
+│   ├── test_account_registry.py
 │   ├── test_cap_trim_guard.py
 │   ├── test_ensemble_fixes.py
 │   ├── test_ladder_state_persistence.py
+│   ├── test_multi_account_scan.py
 │   ├── test_portfolio_rules.py
 │   ├── test_position_sizing.py
+│   ├── test_power_for_ai.py
 │   ├── test_profit_trim.py
+│   ├── test_redeploy.py
 │   └── test_trim_rules.py
 ├── docs/
 │   ├── TRADING_PLAYBOOK.md
 │   ├── HANDOFF_2026-10-17.md
 │   ├── HANDOFF_2026-10-18.md
 │   ├── NZ_AUS_Market_Research.md
-│   └── top10_growth_stocks_oct2025_oct2026.md
+│   ├── strategic_theses.md
+│   ├── tom_nash_analysis.md
+│   ├── top10_growth_stocks_oct2025_oct2026.md
+│   └── archive/             # stale planning docs, kept for reference
 ├── data/                      # Generated JSON (gitignored)
+├── scratch/                   # One-off probes (gitignored)
 └── assets/                    # Charts (gitignored)
 ```
 

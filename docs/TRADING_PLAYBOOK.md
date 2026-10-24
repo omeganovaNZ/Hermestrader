@@ -1,5 +1,12 @@
 # Alpaca Trading System — Complete Playbook
-# Last updated: 2026-10-17 (revised)
+# Last updated: 2026-10-25 (revised)
+
+> **Live rules live in code.** The current rules are enforced in `src/position_manager.py`
+> (trim + cap + redeploy), `src/portfolio_rules.py` (theme cap, thesis review) and
+> `src/alpaca_trader.py` (entry sizing). This file keeps the full reasoning, the backtests that
+> justify each rule, and the refutations of ideas that were tried and rejected. Where a section
+> below describes an older mechanism (the trim ladder, the adaptive gate), it is kept as
+> historical evidence — the section heading says so.
 
 ## Current Portfolio
 
@@ -44,6 +51,14 @@ number originally given for it was overstated.
 held as cash) cuts annualised volatility from **46.4% to 29.6% (−36%)** and max drawdown from
 **−28.7% to −18.9% (−34%)**. The cap earns its place on concentration grounds — just not on
 the correlation figure that was originally offered as its justification.
+
+**Current state (2026-10-25).** The snapshot above is a historical record of 2026-10-17. The
+live book has since moved: cap trims were PLACED (not cancelled) on the winners — Core DDOG,
+Pattern Match VRTX/CVX, Container Test 1 PLTR/LLY/OKTA/DDOG/AI — and the freed cash plus
+parked cash was redeployed into BE (Core), ASML (Pattern Match) and MRVL (Container Test 1).
+The three paper accounts are Core (PA3JY31PP), Pattern Match (PA3JNJZ0X) and Container Test 1
+(PA3HV7XBX); read `accounts.json` for the registry. The AI_SOFTWARE sleeve in Container Test 1
+was over the 40% cap (53.7%) before the trims and is being worked down.
 
 ## Strategy Summary
 
@@ -248,6 +263,33 @@ Note the risk-based term is now inert: risking 2% against a 10% stop implies a 2
 which the 8% cap always overrides. Effective risk per new position is 8% x 10% = **0.8% of the
 account**.
 
+### Redeploy — recycling trimmed cash (2026-10-25)
+
+A cap trim sells a winner and parks the proceeds. Over a 2-year replay on the Core book's own
+names, leaving that cash idle cost the cap its entire point: **+173% leaving it idle vs +246%
+redeployed** (Sharpe 2.12 → 2.26). Easing the cap to 25% instead reached +288% but at Sharpe
+1.86 and a deeper drawdown, so redeployment dominates easing.
+
+`redeploy_signals()` tops up **underweight holdings** (below the 8% entry target) using parked
+cash, then `execute_redeploy()` places the buy. Guards, all enforced and tested:
+
+- **Target below the trim cap** — `redeploy_target_pct` (0.08) is deliberately below
+  `max_position_pct` (0.10), so a top-up never lands a position on the trim boundary.
+- **Minimum gap** — a top-up only fires when the gap is at least `max($1,000, equity x 1%)`, so
+  a near-target position is not churned.
+- **Per-scan throttle** — no more than `redeploy_max_pct` (10%) of equity is deployed in one
+  scan, widest gap first.
+- **Cash reserve** — `redeploy_reserve_pct` (1%) of equity is kept in cash; negative or
+  below-reserve cash deploys nothing.
+- **Theme cap still binds** — a top-up into an over-cap theme is refused, and an unclassified
+  symbol is refused (fail-closed, same as the buy path).
+- **No stacking** — a symbol with a pending buy is skipped; a pending sell does not block it.
+- **Fails closed on account/positions, open on orders** — an unreadable account returns no
+  redeploys; a failed open-orders query does not stop the scan.
+
+Pinned by `test_redeploy.py` (29 tests). Runs inside `run_position_management`, after the cap
+trims, and writes `data/redeploy_log{account}.json`.
+
 ### Portfolio-level rules, now in code (2026-10-17)
 
 Three things that existed only as prose are now enforced or surfaced.
@@ -396,10 +438,12 @@ every downstream calculation.
 
 
 ### Risk Management
-- Max 20% per position
-- 3% risk per trade
-- Trim at milestones to free up capital
-- Reinvest trimmed capital into highest-conviction signals
+- Entry cap: max 8% of equity per position (deliberately below the trim cap)
+- Trim cap: max 10% of equity per position (winners only)
+- Profit trim: +100% ROI, held >6 months, 2 down days, still above the 200-day → sell 20%
+- Trimmed cash is redeployed into underweight holdings (see Redeploy above)
+- Theme (sleeve) cap: 40% of equity, enforced fail-closed at the buy path
+- No stop loss; weakness is an ADD candidate, not a trim
 
 ## Screener Criteria
 
@@ -460,12 +504,13 @@ which still holds stale duplicate copies — ignore anything there).
 
 ## User Preferences
 
-- Risk tolerance: Higher risk OK with multiple confirming signals
-- Investment horizon: Long-term (1-2 years) with active profit-taking
-- Position sizing: Up to 20% per position, 3% risk per trade
-- Trim strategy: Sell 20% at milestones (100% return), RSI>70, overextension
-- Reentry: Only when research stack confirms near-term rise
-- Research approach: Must have multiple independent signals confirming near-term rise
+- Risk tolerance: higher risk OK, but only with multiple confirming signals
+- Investment horizon: long-term (1-2 years) with active profit-taking
+- Position sizing: 8% entry cap per position, 10% trim cap (winners only)
+- Trim strategy: +100% ROI, held >6 months, 2 down days against the trend → sell 20%
+- No stop loss; an outright exit requires a broken thesis (`thesis_break_exit`), not a drawdown
+- Reentry: only when research stack confirms near-term rise
+- Research approach: must have multiple independent signals confirming near-term rise
 
 ## Strategy Performance History
 
