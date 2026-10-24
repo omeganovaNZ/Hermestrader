@@ -17,9 +17,15 @@ from src.market_aware_strategy import MarketAwareHybridStrategy, MARKET_CONFIGS
 from src.portfolio_rules import theme_cap_check_safe
 
 
-def load_credentials():
-    """Load API credentials from local config file."""
-    config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "alpaca_config.txt")
+def load_credentials(config_file=None):
+    """Load API credentials from a local config file.
+
+    `config_file` is a config FILENAME in the repo root (not a path), defaulting to
+    alpaca_config.txt. Each Alpaca paper account has its own key, so running the scanner
+    against more than one book means pointing it at that book's own config file.
+    """
+    filename = config_file or "alpaca_config.txt"
+    config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), filename)
     API_KEY = None
     API_SECRET = None
     with open(config_path, 'r') as f:
@@ -30,15 +36,18 @@ def load_credentials():
             elif line.startswith("API_SECRET="):
                 API_SECRET = line.split("=", 1)[1]
     if not API_KEY or not API_SECRET:
-        raise ValueError("Could not read API credentials from config file")
+        raise ValueError(f"Could not read API credentials from config file: {filename}")
     return API_KEY, API_SECRET
 
 
 class AlpacaTrader:
     """Connects market-aware strategy to Alpaca Paper Trading."""
     
-    def __init__(self):
-        self.API_KEY, self.API_SECRET = load_credentials()
+    def __init__(self, config_file=None):
+        """`config_file` is an optional config FILENAME selecting which paper account to
+        connect to. None = alpaca_config.txt, which is what every existing caller uses."""
+        self.config_file = config_file or "alpaca_config.txt"
+        self.API_KEY, self.API_SECRET = load_credentials(self.config_file)
         self.trading_client = None
         self.data_client = None
         self.connect()

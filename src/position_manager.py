@@ -53,12 +53,55 @@ from src.portfolio_rules import (MAX_THEME_PCT, theme_exposure, unclassified_exp
 
 _HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+_LEGACY_CONFIG = "alpaca_config.txt"
+
+
+def state_slug(config_file):
+    """Filename suffix for this account's state/log files; '' means the legacy names.
+
+    Each book needs its OWN trim log, redeploy log and ladder state. Those files are
+    keyed by symbol and by ROI reference price, so two books writing one file would
+    silently overwrite each other's trim history and re-base each other's references —
+    and the corruption would look exactly like ordinary state.
+
+    The default config keeps the unsuffixed legacy names, so Core's existing
+    data/trim_ladder_state.json is preserved rather than re-initialised (losing it would
+    reset every ROI reference to avg_entry_price and change when a profit trim fires).
+    """
+    if not config_file or config_file == _LEGACY_CONFIG:
+        return ""
+    base = os.path.basename(config_file)
+    if base.startswith("alpaca_config_") and base.endswith(".txt"):
+        base = base[len("alpaca_config_"):-len(".txt")]
+    elif base.endswith(".txt"):
+        base = base[:-len(".txt")]
+    base = base.replace("-", "_")
+    return ("_" + base) if base else ""
+
+
+def registered_accounts():
+    """[(name, config_file)] from accounts.json — the canonical registry."""
+    path = os.path.join(_HERE, "accounts.json")
+    if not os.path.exists(path):
+        return []
+    with open(path) as f:
+        data = json.load(f)
+    return [(a.get("name"), a.get("config_file")) for a in data.get("accounts", [])]
+
 
 class PositionManager:
     """Trimming and profit-taking under the Tom Nash framework."""
 
-    def __init__(self):
-        self.alpaca = AlpacaTrader()
+    def __init__(self, config_file=None):
+        """`config_file` selects which paper account this manager watches.
+
+        None (or alpaca_config.txt) is the legacy Core book and keeps the unsuffixed
+        state files. Any other registered config gets its own suffixed files — see
+        state_slug() for why sharing them is not safe.
+        """
+        self.config_file = config_file or _LEGACY_CONFIG
+        self._suffix = state_slug(config_file)
+        self.alpaca = AlpacaTrader(self.config_file)
         self.ensemble = EnsembleTrader()
 
         self.trim_rules = {
@@ -78,7 +121,7 @@ class PositionManager:
         }
 
         self.trim_log = []
-        self.trim_log_path = os.path.join(_HERE, "data", "trim_log.json")
+        self.trim_log_path = os.path.join(_HERE, "data", f"trim_log{self._suffix}.json")
         if os.path.exists(self.trim_log_path):
             try:
                 with open(self.trim_log_path, 'r') as f:
@@ -88,7 +131,7 @@ class PositionManager:
                 self.trim_log = []
 
         # Per-symbol ladder state: {"MRVL": {"base_price": 235.29, "rungs_fired": [0.5]}}
-        self.ladder_state_path = os.path.join(_HERE, "data", "trim_ladder_state.json")
+        self.ladder_state_path = os.path.join(_HERE, "data", f"trim_ladder_state{self._suffix}.json")
         self.ladder_state = {}
         if os.path.exists(self.ladder_state_path):
             loaded = None
@@ -688,11 +731,46 @@ class PositionManager:
 
 def main():
     import argparse
-    ap = argparse.ArgumentParser(description="Position management — Tom Nash trim ladder.")
+    import traceback
+    ap = argparse.ArgumentParser(description="Position management — profit-trim rule + cap trims.")
     ap.add_argument('--dry-run', action='store_true',
-                    help="report what would be trimmed without placing any order")
+                    help="report what would be trimmed/redeployed without placing any order")
+    ap.add_argument('--account', metavar='CONFIG_FILE',
+                    help="run ONE account, by config filename "
+                         "(e.g. alpaca_config_pattern_match.txt). Default: alpaca_config.txt")
+    ap.add_argument('--all', action='store_true',
+                    help="run EVERY account in accounts.json, in registry order")
     args = ap.parse_args()
-    PositionManager().run_position_management(dry_run=args.dry_run)
+
+    if args.all and args.account:
+        ap.error("--all and --account are mutually exclusive")
+
+    # Resolve the target list. `--all` reads accounts.json; anything else keeps the
+    # single-account behaviour, so an existing cron prompt that passes no flag is
+    # unchanged in what it does.
+    if args.all:
+        targets = [(name, cfg) for name, cfg in registered_accounts() if cfg]
+        if not targets:
+            print("  --all: accounts.json listed no accounts — nothing to do")
+            return
+    elif args.account:
+        targets = [(args.account, args.account)]
+    else:
+        targets = [("Core (default)", _LEGACY_CONFIG)]
+
+    for name, cfg in targets:
+        print("\n" + "#" * 80)
+        print(f"  ACCOUNT: {name}   [{cfg}]")
+        print("#" * 80)
+        try:
+            pm = PositionManager(config_file=cfg)
+            pm.run_position_management(dry_run=args.dry_run)
+        except Exception as e:
+            # One unreachable book must not abort the rest of the loop — this runs
+            # unattended from cron, and a single API failure would otherwise silence
+            # every account after it.
+            print(f"  ACCOUNT {name} FAILED: {type(e).__name__}: {e}")
+            traceback.print_exc()
 
 
 if __name__ == "__main__":
