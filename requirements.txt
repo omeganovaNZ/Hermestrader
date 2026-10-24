@@ -7,10 +7,13 @@ pandas>=2.0
 numpy>=1.24
 
 # Alpaca trading (paper + live)
-alpaca-trade-api>=3.0.0
+# Code imports alpaca.trading.client / alpaca.data.* — that is the alpaca-py SDK.
+# The legacy "alpaca-trade-api" package is a different namespace and is NOT used.
+alpaca-py>=0.40.0
 
-# ML (optional — ensemble LightGBM layer)
+# ML (ensemble LightGBM layer — lightgbm.sklearn needs scikit-learn)
 lightgbm>=4.0.0
+scikit-learn>=1.3
 
 # Plotting (optional — backtest charts)
 matplotlib>=3.7.0

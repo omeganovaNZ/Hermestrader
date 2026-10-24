@@ -53,6 +53,10 @@ trim_ladder_state.json
 data/
 assets/
 
+# Scratch: one-off probes, sweep scripts, cached bars JSON (114MB+). Never commit.
+scratch/
+pxcache/
+
 # Cron output files
 structural_trends_brief_*.md
 weekly_performance_report.md
