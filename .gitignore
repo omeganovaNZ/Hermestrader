@@ -38,6 +38,14 @@ Folding at Home/
 # Python
 __pycache__/
 *.pyc
+.pytest_cache/
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# OS junk
+.DS_Store
+Thumbs.db
 
 # Temp
 *.tmp

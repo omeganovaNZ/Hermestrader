@@ -719,7 +719,7 @@ class PositionManager:
         except Exception:
             return []
         held = {p['symbol'] for p in positions}
-        from src.fundamentals import FUNDAMENTALS, fundamental_check
+        from src.fundamentals import FUNDAMENTALS, fundamental_check, fundamental_score
         candidates = []
         for sym in FUNDAMENTALS:
             if sym in held:
@@ -729,6 +729,12 @@ class PositionManager:
                 candidates.append(sym)
         if not candidates:
             return []
+        # Rank by fundamentals strength and cap the number of names: deploying the whole
+        # excess across every verified name creates a dozen tiny positions, which is
+        # fragmentation, not a spread.
+        max_names = int(getattr(self.alpaca, 'cash_drag_max_names', 5))
+        candidates.sort(key=lambda s: -fundamental_score(s))
+        candidates = candidates[:max_names]
         per = min(excess / len(candidates), equity * 0.08)
         out = []
         for sym in candidates:

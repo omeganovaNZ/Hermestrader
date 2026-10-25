@@ -106,3 +106,19 @@ def fundamental_check_safe(symbol, **kw):
         return fundamental_check(symbol, **kw)
     except Exception as e:
         return False, f"fundamentals gate could not be evaluated ({type(e).__name__}: {e}) - refusing the buy"
+
+
+def fundamental_score(symbol):
+    """A simple ranking score for the verified record (higher = stronger).
+
+    Used to order cash-drag candidates. Returns -1 for a name with no usable record.
+    """
+    rec = FUNDAMENTALS.get(symbol)
+    if rec is None:
+        return -1.0
+    score = 0.0
+    score += max(0.0, float(rec.get("revenue_growth", 0.0))) * 1.0
+    score += max(0.0, float(rec.get("eps_growth", 0.0))) * 1.0
+    score += {"expanding": 30.0, "stable": 15.0, "contracting": 0.0}.get(rec.get("margin_trend"), 0.0)
+    score += {"raised": 20.0, "maintained": 0.0, "cut": -20.0}.get(rec.get("guidance"), 0.0)
+    return score

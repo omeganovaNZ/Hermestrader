@@ -132,6 +132,15 @@ def test_cash_drag_respects_the_theme_cap():
     assert all(d['symbol'] != 'NVDA' for d in out)
 
 
+def test_cash_drag_caps_the_number_of_names():
+    positions = [{'symbol': 'MSFT', 'qty': 1, 'avg_entry_price': 100, 'current_price': 100,
+                  'market_value': 10_000.0, 'unrealized_pl': 0.0}]
+    m = make_pm(positions, cash=30_000.0, equity=EQUITY)
+    m.alpaca.cash_drag_max_names = 3
+    out = m.cash_drag_signals()
+    assert len(out) <= 3, f"expected at most 3 names, got {len(out)}"
+
+
 if __name__ == "__main__":
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for t in tests:

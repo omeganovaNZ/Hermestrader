@@ -150,6 +150,7 @@ class AlpacaTrader:
         # rather than left idle (idle cash was measured to cost the cap its point).
         self.cash_drag_pct = 0.10
         self.cash_drag_days = 5
+        self.cash_drag_max_names = 5   # cap the number of cash-drag buys
         # NOTE: there used to be a `self.risk_per_trade = 0.03` here. It was never read -
         # calculate_position_size is called without a risk_pct argument - and even if it
         # were wired in it could not change the answer: risking 3% against a 10% stop
