@@ -740,16 +740,18 @@ class PositionManager:
                 candidates.append(sym)
         if not candidates:
             return []
-        # Rank by fundamentals strength and cap the number of names: deploying the whole
-        # excess across every verified name creates a dozen tiny positions, which is
-        # fragmentation, not a spread.
+        # Rank by fundamentals strength and cap the number of stock names: deploying the
+        # whole excess across every verified name creates a dozen tiny positions, which is
+        # fragmentation, not a spread. ETFs are the preferred FIRST destination (drawn
+        # down first), but they are not exclusive - the stock portion still gets the
+        # remainder, otherwise every dollar of cash drag would be locked out of the
+        # fundamentals-gated names the gate exists to protect.
         max_names = int(getattr(self.alpaca, 'cash_drag_max_names', 5))
         # ETFs first (already in priority order), then fundamentals by score.
         etf_part = [s for s in candidates if etf_theme_of(s) is not None]
         stock_part = [s for s in candidates if etf_theme_of(s) is None]
         stock_part.sort(key=lambda s: -fundamental_score(s))
-        candidates = etf_part + stock_part
-        candidates = candidates[:max_names]
+        candidates = etf_part + stock_part[:max_names]
         per = min(excess / len(candidates), equity * 0.08)
         out = []
         for sym in candidates:

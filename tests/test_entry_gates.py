@@ -10,6 +10,7 @@ sys.path.insert(0, REPO)
 
 from src.alpaca_trader import AlpacaTrader
 from src.position_manager import PositionManager
+from src.portfolio_rules import ETF_CASH_DRAG_CANDIDATES
 
 EQUITY = 100_000.0
 
@@ -133,12 +134,19 @@ def test_cash_drag_respects_the_theme_cap():
 
 
 def test_cash_drag_caps_the_number_of_names():
+    """max_names caps the STOCK names; ETFs are the preferred first destination and
+    are not counted against it (they are diversified sleeves, not single names)."""
     positions = [{'symbol': 'MSFT', 'qty': 1, 'avg_entry_price': 100, 'current_price': 100,
                   'market_value': 10_000.0, 'unrealized_pl': 0.0}]
     m = make_pm(positions, cash=30_000.0, equity=EQUITY)
     m.alpaca.cash_drag_max_names = 3
     out = m.cash_drag_signals()
-    assert len(out) <= 3, f"expected at most 3 names, got {len(out)}"
+    etf_out = [d for d in out if d['symbol'] in ETF_CASH_DRAG_CANDIDATES]
+    stock_out = [d for d in out if d['symbol'] not in ETF_CASH_DRAG_CANDIDATES]
+    assert len(stock_out) <= 3, f"expected at most 3 stock names, got {len(stock_out)}"
+    assert len(etf_out) > 0, "ETFs should be the first destination for idle cash"
+    # ETFs must come before any stock in the deployment order
+    assert out[0]['symbol'] in ETF_CASH_DRAG_CANDIDATES, "ETFs must be funded first"
 
 
 if __name__ == "__main__":
