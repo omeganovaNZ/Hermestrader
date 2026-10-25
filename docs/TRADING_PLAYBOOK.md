@@ -551,19 +551,32 @@ which still holds stale duplicate copies — ignore anything there).
 ## Strategy Performance History
 
 ### Backtesting Results (5-Year)
-- Market-aware vs Buy & Hold:
-  - RKLB: +1156% vs +345% (MA wins big)
-  - NVDA: +209% vs +882% (B&H wins)
-  - MU: +843% vs +1318% (B&H wins, but MA has better Sharpe)
-  - AMD: +48% vs +383% (B&H wins)
-  - GOOGL: -20% vs +147% (B&H wins)
-  - XOM: +27% vs +233% (B&H wins)
+
+These are a POINT-IN-TIME snapshot of a rolling 5-year window, not a fixed result. The
+published figures (RKLB +1156%) were produced when the window ended earlier; re-running the
+same test today gives lower numbers for names that have since fallen. Run
+`python src/market_aware_strategy.py` to reproduce; the window ends today.
+
+| Stock | Config | B&H | Market-Aware | B&H Sharpe | MA Sharpe |
+|---|---|---|---|---|---|
+| RKLB | NZ_AUS | +304.9% | +619.98% | 0.742 | 0.911 |
+| NVDA | SEMICONDUCTOR_LOGIC | +814.7% | +284.77% | 1.114 | 0.856 |
+| MU | SEMICONDUCTOR_MEMORY | +1207.2% | +574.51% | 1.188 | 0.994 |
+| AMD | SEMICONDUCTOR_LOGIC | +322.4% | +135.12% | 0.787 | 0.623 |
+| INTC | US_TECH | +91.1% | -7.28% | 0.510 | 0.174 |
+| 005930.KS | KOREA | +237.7% | +150.90% | 0.804 | 0.745 |
+| GOOGL | US_TECH | +135.2% | +1.72% | 0.695 | 0.133 |
+
+(An earlier version of this table listed XOM instead of INTC/005930.KS; the results file
+has always contained INTC and Samsung.)
 
 ### Key Insights
-- MA beats B&H on high-volatility stocks and cyclical recoveries
-- MA underperforms on steady uptrends
-- Edge is drawdown control, not absolute returns
+- MA beats B&H on high-volatility stocks and cyclical recoveries (RKLB)
+- MA underperforms on steady uptrends (NVDA, MU, AMD, GOOGL)
+- Edge is drawdown control, not absolute returns (MA max DD is consistently shallower)
 - ADX threshold 30-33 works better than 25 for US stocks
+- **The +1000% headline is a window artefact, not a strategy result.** On the same 5-year
+  window, the strategy loses to buy-and-hold on 5 of these 7 names.
 
 ## Watchlist (40+ stocks)
 

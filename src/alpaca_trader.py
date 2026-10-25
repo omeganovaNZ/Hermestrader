@@ -56,9 +56,10 @@ class AlpacaTrader:
         # Watchlist with strategy configs — refined based on backtesting + screener
         self.watchlist = [
             # High-conviction: MA beats B&H with better Sharpe
-            ("RKLB", "Rocket Lab", "NZ_AUS"),           # MA +1156% vs B&H +345%
-            ("MU", "Micron", "SEMICONDUCTOR_MEMORY"),   # MA Sharpe 1.330 vs B&H 1.219
-            ("BE", "Bloom Energy", "POWER_FOR_AI"),     # MA +1359% vs B&H +1011%; fuel cells sold to data-centre load
+            # (returns below are a point-in-time 5y snapshot, not a fixed result)
+            ("RKLB", "Rocket Lab", "NZ_AUS"),           # MA +620% vs B&H +305% (5y, Oct 2026)
+            ("MU", "Micron", "SEMICONDUCTOR_MEMORY"),   # MA Sharpe 0.994 vs B&H 1.188
+            ("BE", "Bloom Energy", "POWER_FOR_AI"),     # MA +1359% vs B&H +1011% (5y, earlier window); fuel cells sold to data-centre load
             ("PK", "Park Hotels", "US_TECH"),           # MA +69% vs B&H +22%
             ("HD", "Home Depot", "US_TECH"),            # MA +6% vs B&H -1%
             
