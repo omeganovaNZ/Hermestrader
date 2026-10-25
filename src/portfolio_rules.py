@@ -204,10 +204,79 @@ THEMES = {
     },
 }
 
+# ── index funds (ETFs) ─────────────────────────────────────────────────────────────
+#
+# The books are high-beta and concentrated (portfolio vol ~3-4x the market), and the
+# lowest-volatility, steadiest growth available is an index fund. But `theme_of()` only
+# knew stocks, so an ETF was UNCLASSIFIED and `theme_cap_check` refused it — an ETF was
+# not "uncapped", it was UNBUYABLE. These entries make index funds a first-class sleeve
+# with its own cap, so diversification can actually be bought.
+#
+# Verified over the 12 months to 2026-10-25 (see docs/): the steady compounders are
+# SCHD (+35%, vol 11%, DD -7%), XLV (+25%, vol 16%), VTV/RSP (+15-22%, vol 10-12%);
+# the growth indexes QQQ/VGT/XLK (+15-24%, vol 20-26%). Leveraged funds are listed only
+# so they are CLASSIFIED (and capped); they are not recommended for a core holding.
+MAX_ETF_PCT = 0.40
+
+ETF_THEMES = {
+    "BROAD_MARKET": {"SPY", "VOO", "IVV", "VTI", "RSP", "QUAL", "MTUM", "VOOG", "VOOV"},
+    "GROWTH_INDEX": {"QQQ", "VGT", "XLK", "IYW", "QTEC", "IGV", "IGM", "SKYY", "FNGU", "FNGS"},
+    "DIVIDEND_VALUE": {"SCHD", "VYM", "SDY", "NOBL", "DGRO", "JEPI", "VTV", "IVE"},
+    "SECTOR": {
+        "XLV", "XLE", "VDE", "XLF", "XLI", "IHI", "XLC", "XLU", "SMH", "SOXX",
+        "ICLN", "TAN", "QCLN", "PBW", "GLD", "IAU", "SLV",
+    },
+    "LEVERAGED": {"TQQQ", "QLD", "SSO", "UPRO", "SPXL", "TECL", "SOXL", "LABU", "WEBL"},
+}
+
+
+def etf_theme_of(symbol):
+    """The ETF sleeve a symbol belongs to, or None if it is not a known ETF."""
+    matches = [name for name, members in ETF_THEMES.items() if symbol in members]
+    if len(matches) > 1:
+        return "MULTIPLE"
+    return matches[0] if matches else None
+
+
+def etf_exposure(positions, equity):
+    """{etf_theme: {'value','pct','symbols'}} for every ETF sleeve with a holding."""
+    out = {}
+    for p in positions:
+        th = etf_theme_of(p["symbol"])
+        if th is None:
+            continue
+        b = out.setdefault(th, {"value": 0.0, "symbols": []})
+        b["value"] += float(p["market_value"])
+        b["symbols"].append(p["symbol"])
+    for b in out.values():
+        b["pct"] = b["value"] / equity if equity > 0 else 0.0
+        b["symbols"].sort()
+    return out
+
+
+def etf_cap_check_safe(symbol, added_value, positions, equity, max_pct=MAX_ETF_PCT):
+    """(ok, reason) for buying an ETF. Fails CLOSED, same contract as the stock cap.
+
+    An unknown symbol (not a stock theme, not an ETF sleeve) is refused: an unclassified
+    symbol escapes every cap, which is how a sleeve runs away.
+    """
+    th = etf_theme_of(symbol)
+    if th is None:
+        return False, f"{symbol} is neither a known stock theme nor a known ETF sleeve - refusing the buy"
+    if th == "MULTIPLE":
+        return False, f"{symbol} appears in multiple ETF sleeves - fix the map"
+    if equity <= 0:
+        return False, "equity is unavailable or non-positive - refusing the buy"
+    cur = etf_exposure(positions, equity).get(th, {}).get("value", 0.0)
+    after = (cur + float(added_value)) / equity
+    if after > max_pct:
+        return False, (f"{th} would be {after:.1%} of equity after this buy "
+                       f"(ETF cap {max_pct:.0%}, currently {cur/equity:.1%})")
+    return True, f"{th} would be {after:.1%} of equity (ETF cap {max_pct:.0%})"
+
 
 def theme_of(symbol):
     """The theme a symbol belongs to, or None when it is unclassified.
-
     If a symbol appears in more than one theme (a data integrity bug), returns
     'MULTIPLE' to make the conflict visible rather than silently picking one
     based on dict iteration order.
@@ -219,11 +288,15 @@ def theme_of(symbol):
 
 
 def theme_exposure(positions, equity):
-    """{theme: {'value', 'pct', 'symbols'}} for every theme with a holding."""
+    """{theme: {'value', 'pct', 'symbols'}} for every theme with a holding.
+
+    Includes ETF sleeves (see ETF_THEMES) so index funds are visible on every scan
+    rather than silently absent from the exposure report.
+    """
     out = {}
     for p in positions:
-        th = theme_of(p["symbol"])
-        if th is None:
+        th = theme_of(p["symbol"]) or etf_theme_of(p["symbol"])
+        if th is None or th == "MULTIPLE":
             continue
         b = out.setdefault(th, {"value": 0.0, "symbols": []})
         b["value"] += float(p["market_value"])
@@ -239,7 +312,7 @@ def unclassified_exposure(positions, equity):
     silent one: these names are subject to no cap."""
     syms, val = [], 0.0
     for p in positions:
-        if theme_of(p["symbol"]) is None:
+        if theme_of(p["symbol"]) is None and etf_theme_of(p["symbol"]) is None:
             syms.append(p["symbol"])
             val += float(p["market_value"])
     return {"value": val, "pct": val / equity if equity > 0 else 0.0, "symbols": sorted(syms)}
@@ -255,12 +328,13 @@ def theme_cap_check(symbol, added_value, positions, equity, max_pct=MAX_THEME_PC
     """
     th = theme_of(symbol)
     if th is None:
-        # FAIL CLOSED. An unclassified symbol has no theme cap, so the cap cannot
-        # constrain it. Refusing the buy is the safe default — the alternative is
-        # a new AI name buying through with no cap, which is exactly how the
-        # AI-hardware sleeve reached 75% of long market value.
-        return False, (f"{symbol} is unclassified - no theme cap applies, "
-                       f"refusing the buy. Add it to THEMES to allow it.")
+        # Not a stock theme. If it is a known ETF sleeve, route it to the ETF cap;
+        # otherwise FAIL CLOSED — an unclassified symbol has no cap at all, which is
+        # how the AI-hardware sleeve reached 75% of long market value.
+        if etf_theme_of(symbol) is not None:
+            return etf_cap_check_safe(symbol, added_value, positions, equity)
+        return False, (f"{symbol} is unclassified - no theme or ETF cap applies, "
+                       f"refusing the buy. Add it to THEMES or ETF_THEMES to allow it.")
     if th == 'MULTIPLE':
         return False, f"{symbol} appears in multiple themes - fix the THEMES map"
     if equity <= 0:
