@@ -48,8 +48,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.alpaca_trader import AlpacaTrader
 from src.ensemble_trader import EnsembleTrader
 from src.trading_strategy_engine import fetch_data
-from src.portfolio_rules import (MAX_THEME_PCT, theme_exposure, unclassified_exposure,
-                             thesis_review, theme_cap_check_safe)
+from src.portfolio_rules import (MAX_THEME_PCT, MAX_ETF_PCT, ETF_THEMES, theme_exposure,
+                             unclassified_exposure, thesis_review, theme_cap_check_safe)
 
 _HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -446,13 +446,14 @@ class PositionManager:
         out = []
         for th, b in sorted(theme_exposure(positions, equity).items(),
                             key=lambda kv: -kv[1]['value']):
-            over = b['pct'] > MAX_THEME_PCT
+            cap = MAX_ETF_PCT if th in ETF_THEMES else MAX_THEME_PCT
+            over = b['pct'] > cap
             out.append({
                 'type': 'THEME_EXPOSURE', 'action': 'REPORT_ONLY', 'theme': th,
                 'pct': b['pct'], 'value': b['value'], 'symbols': b['symbols'],
                 'over_cap': over,
                 'reason': (f"{th} is {b['pct']:.1%} of equity - "
-                           f"{'OVER' if over else 'within'} the {MAX_THEME_PCT:.0%} cap "
+                           f"{'OVER' if over else 'within'} the {cap:.0%} cap "
                            f"({', '.join(b['symbols'])})"),
             })
 
@@ -663,6 +664,85 @@ class PositionManager:
             total_deployed += amount
         return out
 
+    def portfolio_risk_signals(self) -> List[Dict]:
+        """Portfolio-level downside check. REPORT ONLY — never sells.
+
+        The system had no downside management at all: the profit trim needs +100%, the
+        cap trim only sells winners, and thesis_break_exit is called by nothing. This
+        closes the VISIBILITY gap at the portfolio level: it reports the drawdown from
+        the account's equity peak and the worst positions, so a human decision is
+        prompted rather than the book being silently left to fall.
+        """
+        out = []
+        try:
+            hist = self.alpaca.trading_client.get_portfolio_history()
+        except Exception as e:
+            return [{'type': 'PORTFOLIO_RISK', 'action': 'REPORT_ONLY', 'symbol': None,
+                     'reason': f'portfolio history unavailable ({type(e).__name__}: {e}) - drawdown not computed'}]
+        try:
+            equity = [float(x) for x in hist.equity]
+        except Exception:
+            return out
+        if len(equity) < 2:
+            return out
+        peak = max(equity)
+        cur = equity[-1]
+        dd = (cur / peak - 1) * 100 if peak > 0 else 0.0
+        out.append({
+            'type': 'PORTFOLIO_RISK', 'action': 'REPORT_ONLY', 'symbol': None,
+            'peak': peak, 'current': cur, 'drawdown_pct': dd,
+            'reason': (f"portfolio {dd:+.1f}% from its peak (${peak:,.0f} -> ${cur:,.0f})"),
+        })
+        return out
+
+    def cash_drag_signals(self) -> List[Dict]:
+        """Deploy idle cash into verified names not already held.
+
+        Idle cash was measured to cost the cap its point (+173% vs +246% redeployed).
+        Cash above `cash_drag_pct` of equity is deployed into names that pass the
+        fundamentals gate and the theme/ETF caps, each capped at the 8% entry cap.
+        """
+        try:
+            account = self.alpaca.get_account()
+            equity = float(account['equity'])
+            cash = float(account['cash'])
+        except Exception:
+            return []
+        if equity <= 0:
+            return []
+        threshold = equity * float(getattr(self.alpaca, 'cash_drag_pct', 0.10))
+        excess = cash - threshold
+        if excess <= 0:
+            return []
+        try:
+            positions = self.alpaca.get_positions()
+        except Exception:
+            return []
+        held = {p['symbol'] for p in positions}
+        from src.fundamentals import FUNDAMENTALS, fundamental_check
+        candidates = []
+        for sym in FUNDAMENTALS:
+            if sym in held:
+                continue
+            ok, _ = fundamental_check(sym)
+            if ok:
+                candidates.append(sym)
+        if not candidates:
+            return []
+        per = min(excess / len(candidates), equity * 0.08)
+        out = []
+        for sym in candidates:
+            if excess <= 0:
+                break
+            amt = min(per, excess)
+            ok, why = theme_cap_check_safe(sym, amt, positions, equity)
+            if not ok:
+                continue
+            out.append({'symbol': sym, 'notional': amt})
+            positions = positions + [{'symbol': sym, 'market_value': amt}]
+            excess -= amt
+        return out
+
     def execute_redeploy(self, symbol: str, notional, reason: str) -> bool:
         """Place a top-up buy for `notional` dollars of a held symbol."""
         try:
@@ -869,12 +949,46 @@ class PositionManager:
             else:
                 print("    REDEPLOY FAILED")
 
+        print("-" * 80)
+        print("  CASH DRAG (deploy idle cash into verified names)")
+        print("-" * 80)
+        try:
+            drags = self.cash_drag_signals()
+        except Exception as e:
+            print(f"  cash_drag_signals FAILED - {type(e).__name__}: {e}")
+            drags = []
+        if not drags:
+            print("  no idle cash above the drag threshold")
+        for cd in drags:
+            print(f"  {cd['symbol']}: deploy ${cd['notional']:,.2f}")
+            if dry_run:
+                print(f"    WOULD BUY: ${cd['notional']:,.2f} of {cd['symbol']}")
+                continue
+            if self.execute_redeploy(cd['symbol'], cd['notional'], "cash_drag"):
+                print(f"    DEPLOYED: ordered ${cd['notional']:,.2f} of {cd['symbol']}")
+                executed += 1
+            else:
+                print("    CASH DRAG FAILED")
+
         print(f"\n{'-' * 80}\n  THEME EXPOSURE (cap {MAX_THEME_PCT:.0%})\n{'-' * 80}")
         try:
             for t in self.theme_signals():
                 print(f"  {t['reason']}")
         except Exception as e:
             print(f"  theme_signals FAILED - {type(e).__name__}: {e}")
+
+        print("-" * 80)
+        print("  PORTFOLIO RISK (report only - never sells)")
+        print("-" * 80)
+        try:
+            risks = self.portfolio_risk_signals()
+        except Exception as e:
+            print(f"  portfolio_risk_signals FAILED - {type(e).__name__}: {e}")
+            risks = []
+        if not risks:
+            print("  nothing flagged")
+        for r in risks:
+            print(f"  {r['reason']}")
 
         print(f"\n{'-' * 80}\n  THESIS REVIEW (report only - never sells)\n{'-' * 80}")
         try:

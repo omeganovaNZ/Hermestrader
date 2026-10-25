@@ -15,6 +15,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.market_aware_strategy import MarketAwareHybridStrategy, MARKET_CONFIGS
 from src.portfolio_rules import theme_cap_check_safe
+from src.fundamentals import fundamental_check_safe
 
 
 def load_credentials(config_file=None):
@@ -124,6 +125,31 @@ class AlpacaTrader:
         # three different caps, none of them agreeing, which is how four positions ended up
         # over-cap on the day they were bought.
         self.max_position_pct = 0.08
+        # ENSEMBLE GATE. The standing rule is to act only on multiple independent
+        # confirming signals. The buy path used to trade on a single technical layer
+        # while `min_confirming_signals` sat unused; this flag turns the rule on.
+        self.require_ensemble = True
+        self._ensemble = None       # lazily built (trains LightGBM per symbol)
+        self._ensemble_cache = {}   # symbol -> (decision, note, live_layers)
+        self.ensemble_min_live_layers = 3   # MIN_LIVE_LAYERS
+        # CONVICTION TIERS. A flat 8% entry cap treats a high-conviction name the same as
+        # a satellite. This maps a symbol to a higher or lower entry cap (all still
+        # below the 10% trim cap, so a position is never born over-cap).
+        self.conviction_pct = {
+            "RKLB": 0.10,   # owner's conviction hold (Neutron)
+            "PLTR": 0.10,
+            "NTAP": 0.10,
+            "MSFT": 0.10,
+        }
+        self.satellite_pct = 0.04   # default tier for unlisted names
+        # The trim cap lives in position_manager; the entry cap must never exceed it,
+        # or a position is born over-cap and (since the cap trim only sells winners)
+        # can never be corrected. Clamp the tier to it here.
+        self.trim_cap_pct = 0.10
+        # CASH DRAG. Cash above this share of equity is deployed within `cash_drag_days`
+        # rather than left idle (idle cash was measured to cost the cap its point).
+        self.cash_drag_pct = 0.10
+        self.cash_drag_days = 5
         # NOTE: there used to be a `self.risk_per_trade = 0.03` here. It was never read -
         # calculate_position_size is called without a risk_pct argument - and even if it
         # were wired in it could not change the answer: risking 3% against a 10% stop
@@ -292,6 +318,37 @@ class AlpacaTrader:
             'pct_b': float(latest_row['pct_b']),
         }
     
+    def ensemble_gate(self, symbol, name=None, config_name=None):
+        """(ok, reason): does `symbol` pass the multi-layer ensemble gate?
+
+        The standing rule is to act only on multiple independent confirming signals.
+        This blocks a buy unless the ensemble has at least `ensemble_min_live_layers`
+        live layers and its decision is not a SELL. Fails OPEN (returns True with a
+        note) when the ensemble cannot be built, so a data outage does not silently
+        block every buy — but the skip is reported rather than hidden.
+        """
+        if symbol in self._ensemble_cache:
+            decision, note, live = self._ensemble_cache[symbol]
+        else:
+            try:
+                from src.ensemble_trader import EnsembleTrader
+                if self._ensemble is None:
+                    self._ensemble = EnsembleTrader()
+                cfg = config_name or "US_TECH"
+                sig = self._ensemble.generate_ensemble_signal(symbol, cfg, name or symbol)
+                decision = sig.get('decision', 'HOLD')
+                live = len(sig.get('layers_used', []))
+                note = sig.get('decision_note', '')
+                self._ensemble_cache[symbol] = (decision, note, live)
+            except Exception as e:
+                return True, f"ensemble unavailable ({type(e).__name__}: {e}) - gate skipped"
+        min_live = int(getattr(self, 'ensemble_min_live_layers', 3))
+        if live < min_live:
+            return False, f"only {live} live layer(s), need {min_live}"
+        if decision in ('SELL', 'STRONG_SELL'):
+            return False, f"ensemble decision {decision}: {note}"
+        return True, f"ensemble {decision} ({live} live layers)"
+
     def calculate_position_size(self, symbol, signal, account_value, risk_pct=0.02):
         """Size a new position, capped BELOW the trim cap so it is never born over-cap.
 
@@ -319,8 +376,12 @@ class AlpacaTrader:
         stop_distance = price * 0.10
         shares = int(risk_amount / stop_distance)
 
-        # Cap at the configured position size (below the trim cap).
-        max_position = account_value * float(self.max_position_pct)
+        # Cap at the configured position size (below the trim cap). Conviction-tiered:
+        # a name on the conviction list may be sized higher (still below the 10% trim
+        # cap), a satellite is sized lower. Default is the flat entry cap.
+        tier_pct = float(getattr(self, 'conviction_pct', {}).get(symbol, self.max_position_pct))
+        tier_pct = min(tier_pct, float(getattr(self, 'trim_cap_pct', 0.10)))
+        max_position = account_value * tier_pct
         max_shares = int(max_position / price)
         shares = min(shares, max_shares)
 
@@ -408,6 +469,8 @@ class AlpacaTrader:
             try:
                 signal = self.generate_signals(ticker, config_name)
                 if signal:
+                    signal['name'] = name
+                    signal['config_name'] = config_name
                     signals.append(signal)
                     action = "BUY" if signal['signal'] == 1 else "SELL" if signal['signal'] == -1 else "HOLD"
                     print(f"  {name} ({ticker}): {action} | Regime: {signal['regime']} | ADX: {signal['adx']:.1f} | Price: ${signal['close']:.2f}")
@@ -442,6 +505,25 @@ class AlpacaTrader:
                             continue
                     except Exception as e:
                         print(f"  BUY {symbol}: WARNING - could not check pending orders: {e}")
+                    # FUNDAMENTALS GATE. The technical screen has no forward edge (the
+                    # 2026-04-25 fair test: picks +3.5% vs SPY +7.0%), so a technical buy
+                    # signal alone is not enough. Require a verified fundamentals record.
+                    fok, fwhy = fundamental_check_safe(symbol)
+                    if not fok:
+                        print(f"  BUY {symbol}: BLOCKED by the fundamentals gate - {fwhy}")
+                        continue
+
+                    # ENSEMBLE GATE. The standing rule is to act only on multiple
+                    # independent confirming signals; this is where it is enforced. A
+                    # single technical layer is not enough. Skipped (not blocking) when
+                    # the ensemble cannot be built, but reported.
+                    if self.require_ensemble:
+                        eok, ewhy = self.ensemble_gate(symbol, signal.get('name'),
+                                                       signal.get('config_name'))
+                        if not eok:
+                            print(f"  BUY {symbol}: BLOCKED by the ensemble gate - {ewhy}")
+                            continue
+
                     shares, price = self.calculate_position_size(
                         symbol, signal['signal'], account['portfolio_value']
                     )
