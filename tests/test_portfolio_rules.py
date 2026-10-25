@@ -92,9 +92,19 @@ def test_buy_that_breaches_the_cap_is_refused():
 
 
 def test_buy_within_the_cap_is_allowed():
-    positions = [pos('MRVL', 100, 200, 200), pos('MU', 37.5, 400, 400)]  # 35%
-    ok, why = pr.theme_cap_check('AMD', 4_000, positions, EQUITY)        # -> 39%
+    # Under the 30% de-concentration trigger the normal 40% cap applies.
+    positions = [pos('MRVL', 100, 200, 200), pos('MU', 12.5, 400, 400)]  # 25% AI_HARDWARE
+    ok, why = pr.theme_cap_check('AMD', 4_000, positions, EQUITY)        # -> ~29%
     assert ok is True, why
+
+
+def test_ai_hardware_over_30pct_freezes_new_buys():
+    # While the sleeve is being worked down (>= 30%), new AI_HARDWARE buys are
+    # frozen at a 30% ceiling, so even a small addition is refused.
+    positions = [pos('MRVL', 100, 200, 200), pos('MU', 37.5, 400, 400)]  # 35%
+    ok, why = pr.theme_cap_check('AMD', 1_000, positions, EQUITY)
+    assert ok is False, why
+    assert '30%' in why or 'cap 30' in why.lower() or '30' in why
 
 
 def test_adding_to_an_already_over_cap_theme_is_refused():
@@ -139,9 +149,9 @@ def test_unreadable_position_value_fails_closed():
 
 
 def test_safe_wrapper_delegates_when_the_input_is_fine():
-    positions = [pos('MRVL', 100, 200, 200), pos('MU', 37.5, 400, 400)]   # 35%
+    positions = [pos('MRVL', 100, 200, 200), pos('MU', 12.5, 400, 400)]   # 25%
     assert pr.theme_cap_check_safe('AMD', 4_000, positions, EQUITY)[0] is True
-    assert pr.theme_cap_check_safe('AMD', 6_000, positions, EQUITY)[0] is False
+    assert pr.theme_cap_check_safe('AMD', 16_000, positions, EQUITY)[0] is False
 
 
 # ── thesis review ───────────────────────────────────────────────────────────────────────
@@ -203,10 +213,12 @@ def test_review_is_sorted_worst_first():
 
 def test_cap_boundary_at_exactly_40pct():
     """`after > max_pct` means landing exactly ON the ceiling passes; going past it does not."""
-    positions = [pos('MRVL', 100, 200, 200), pos('MU', 50, 400, 400)]     # exactly 40.0%
-    ok, why = pr.theme_cap_check('AMD', 0.0, positions, EQUITY)
+    # Use a non-AI_HARDWARE theme so the 40% cap (not the 30% de-concentration
+    # freeze) is what is being boundary-tested.
+    positions = [pos('LLY', 16, 2500, 2500)]     # exactly 40.0% of BIG_PHARMA
+    ok, why = pr.theme_cap_check('LLY', 0.0, positions, EQUITY)
     assert ok is True, why
-    ok, why = pr.theme_cap_check('AMD', 0.01, positions, EQUITY)           # 40.00001%
+    ok, why = pr.theme_cap_check('LLY', 0.01, positions, EQUITY)           # 40.00001%
     assert ok is False, why
 
 

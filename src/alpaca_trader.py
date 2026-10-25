@@ -510,10 +510,16 @@ class AlpacaTrader:
                     # FUNDAMENTALS GATE. The technical screen has no forward edge (the
                     # 2026-04-25 fair test: picks +3.5% vs SPY +7.0%), so a technical buy
                     # signal alone is not enough. Require a verified fundamentals record.
-                    fok, fwhy = fundamental_check_safe(symbol)
-                    if not fok:
-                        print(f"  BUY {symbol}: BLOCKED by the fundamentals gate - {fwhy}")
-                        continue
+                    # ETFs are diversified by construction and need no fundamentals record;
+                    # they are the preferred drawdown-control sleeve, so they pass here.
+                    from src.portfolio_rules import etf_theme_of
+                    if etf_theme_of(symbol) is None:
+                        fok, fwhy = fundamental_check_safe(symbol)
+                        if not fok:
+                            print(f"  BUY {symbol}: BLOCKED by the fundamentals gate - {fwhy}")
+                            continue
+                    else:
+                        fwhy = f"ETF sleeve ({etf_theme_of(symbol)}) - diversified by construction"
 
                     # ENSEMBLE GATE. The standing rule is to act only on multiple
                     # independent confirming signals; this is where it is enforced. A

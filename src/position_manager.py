@@ -647,8 +647,9 @@ class PositionManager:
                 continue
             candidates.append((sym, gap))
 
-        # widest gap first
-        candidates.sort(key=lambda x: -x[1])
+        # widest gap first, but ETF sleeves first (drawdown control takes priority)
+        from src.portfolio_rules import etf_theme_of
+        candidates.sort(key=lambda x: (0 if etf_theme_of(x[0]) is not None else 1, -x[1]))
 
         out = []
         total_deployed = 0.0
@@ -720,7 +721,17 @@ class PositionManager:
             return []
         held = {p['symbol'] for p in positions}
         from src.fundamentals import FUNDAMENTALS, fundamental_check, fundamental_score
+        from src.portfolio_rules import ETF_CASH_DRAG_CANDIDATES, etf_theme_of
         candidates = []
+        # ETF sleeves are the preferred first destination for idle cash (drawdown
+        # control). They need no fundamentals record (diversified by construction),
+        # so they are admitted before the fundamentals-gated stock candidates.
+        for sym in ETF_CASH_DRAG_CANDIDATES:
+            if sym in held:
+                continue
+            if etf_theme_of(sym) is None:
+                continue
+            candidates.append(sym)
         for sym in FUNDAMENTALS:
             if sym in held:
                 continue
@@ -733,7 +744,11 @@ class PositionManager:
         # excess across every verified name creates a dozen tiny positions, which is
         # fragmentation, not a spread.
         max_names = int(getattr(self.alpaca, 'cash_drag_max_names', 5))
-        candidates.sort(key=lambda s: -fundamental_score(s))
+        # ETFs first (already in priority order), then fundamentals by score.
+        etf_part = [s for s in candidates if etf_theme_of(s) is not None]
+        stock_part = [s for s in candidates if etf_theme_of(s) is None]
+        stock_part.sort(key=lambda s: -fundamental_score(s))
+        candidates = etf_part + stock_part
         candidates = candidates[:max_names]
         per = min(excess / len(candidates), equity * 0.08)
         out = []
@@ -760,10 +775,8 @@ class PositionManager:
             return False
 
         position = next((p for p in self.alpaca.get_positions() if p['symbol'] == symbol), None)
-        if position is None:
-            return False
 
-        # pending buy blocks
+        # pending buy blocks (applies to both held top-ups and new names)
         try:
             pending = {o['symbol'] for o in self.alpaca.get_open_orders()
                        if str(o.get('side', '')).lower() == 'buy'}
@@ -772,10 +785,33 @@ class PositionManager:
         except Exception:
             pass
 
-        try:
-            price = float(position['current_price'])
-            if not (price > 0) or price != price:
+        if position is None:
+            # New name (e.g. an ETF sleeve from cash_drag): no existing position to
+            # price from. Fetch a price so the notional can be converted to shares.
+            price = 0.0
+            try:
+                q = self.alpaca.get_quote(symbol)
+                price = float(getattr(q, 'ask_price', 0) or getattr(q, 'bid_price', 0) or 0)
+            except Exception:
+                price = 0.0
+            if price <= 0:
+                try:
+                    df = self.alpaca.get_historical_data(symbol, days=5)
+                    if df is not None and len(df) > 0:
+                        price = float(df['Close'].iloc[-1])
+                except Exception:
+                    price = 0.0
+            if price <= 0:
                 return False
+        else:
+            try:
+                price = float(position['current_price'])
+            except (KeyError, TypeError, ValueError):
+                price = 0.0
+            if price <= 0:
+                return False
+
+        try:
             shares = notional / price
             order = self.alpaca.place_buy_order(symbol, shares)
             if order is None:

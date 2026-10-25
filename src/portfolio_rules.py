@@ -27,6 +27,14 @@ import math
 
 MAX_THEME_PCT = 0.40
 
+# De-concentration: while the AI-hardware sleeve is over 30% of equity it is being
+# worked down, so new AI_HARDWARE buys are frozen at a 30% ceiling (i.e. none can
+# land while it is already above 30%). Once it is diluted below 30%, the normal 40%
+# cap applies again. This is the hysteresis that stops the sleeve re-inflating
+# while we are trying to shrink it.
+AI_HARDWARE_DECONCENTRATION_TRIGGER = 0.30
+AI_HARDWARE_DECONCENTRATION_CAP = 0.30
+
 # One theme per symbol. The map is a RISK map, not a sector map: a theme is a group of
 # names that MOVE TOGETHER, because correlation is what makes a sleeve a risk.
 #
@@ -216,6 +224,11 @@ THEMES = {
 # SCHD (+35%, vol 11%, DD -7%), XLV (+25%, vol 16%), VTV/RSP (+15-22%, vol 10-12%);
 # the growth indexes QQQ/VGT/XLK (+15-24%, vol 20-26%). Leveraged funds are listed only
 # so they are CLASSIFIED (and capped); they are not recommended for a core holding.
+#
+# Preferred first destination for idle cash (cash_drag) and redeployed trims: the
+# steady compounders above, in priority order. The cap check still applies to each.
+ETF_CASH_DRAG_CANDIDATES = ["SCHD", "XLV", "VTV", "RSP", "SPY"]
+
 MAX_ETF_PCT = 0.40
 
 ETF_THEMES = {
@@ -337,6 +350,15 @@ def theme_cap_check(symbol, added_value, positions, equity, max_pct=MAX_THEME_PC
                        f"refusing the buy. Add it to THEMES or ETF_THEMES to allow it.")
     if th == 'MULTIPLE':
         return False, f"{symbol} appears in multiple themes - fix the THEMES map"
+    # De-concentration hysteresis: freeze AI_HARDWARE growth while it is over the
+    # trigger, so the sleeve is worked down instead of re-inflating.
+    if th == "AI_HARDWARE" and equity and equity > 0:
+        try:
+            _cur = theme_exposure(positions, equity).get("AI_HARDWARE", {}).get("value", 0.0)
+            if (_cur / equity) >= AI_HARDWARE_DECONCENTRATION_TRIGGER:
+                max_pct = min(max_pct, AI_HARDWARE_DECONCENTRATION_CAP)
+        except Exception:
+            pass
     if equity <= 0:
         # Fail CLOSED. This used to return True ("not evaluated"), which contradicted the
         # fail-closed contract of the order-path wrapper: a zero or unreadable equity
