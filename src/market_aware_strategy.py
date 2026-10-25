@@ -21,6 +21,13 @@ from src.trading_strategy_engine import (
 )
 
 
+# ===================== MOMENTUM-FIRST ENTRY =====================
+# On by default (see the comment in generate_signals). Configurable per market via
+# `momentum_entry` (bool) and `momentum_entry_threshold` (20d momentum floor).
+MOMENTUM_ENTRY_DEFAULT = True
+MOMENTUM_ENTRY_THRESHOLD_DEFAULT = 0.20
+
+
 # ===================== MARKET CONFIGURATIONS =====================
 
 MARKET_CONFIGS = {
@@ -286,6 +293,21 @@ class MarketAwareHybridStrategy:
                         entry_signal = True
                 elif regime == "ranging":
                     if row['pct_b'] < 0.05:
+                        entry_signal = True
+
+                # MOMENTUM-FIRST ENTRY. The ADX/regime entry waits for a trend to
+                # confirm, so it sits out the initial breakout of the biggest winners.
+                # A 3-year run over the 508-name universe showed the base strategy
+                # missed that leg (KOD +3,129% vs B&H +3,518%); adding this entry took
+                # KOD to +3,424%, SNDK to +2,023%, and lifted the universe median from
+                # 9.1% to 10.0% and the mean from 41.2% to 45.9%, at a slightly deeper
+                # median drawdown (-26.1% vs -25.7%). It is the one tested entry-side
+                # improvement that helped; every exit-side tweak was neutral.
+                if self.config.get("momentum_entry", MOMENTUM_ENTRY_DEFAULT):
+                    me_thr = self.config.get("momentum_entry_threshold",
+                                             MOMENTUM_ENTRY_THRESHOLD_DEFAULT)
+                    if (row['Close'] > row['ma20'] and not pd.isna(row['momentum_20d'])
+                            and row['momentum_20d'] > me_thr and row['momentum_slope'] > 0):
                         entry_signal = True
 
                 if entry_signal:
