@@ -54,6 +54,28 @@ Runs daily at 08:00 NZT. Parallelized with 5 workers.
   orders. Pinned by `tests/test_redeploy.py`.
 - **Add candidates** and **thesis review** are report-only; outright exits are never automatic.
 
+### Buy gates (a buy must pass all of these)
+
+1. **Technical signal** — the market-aware ADX/Bollinger strategy must be BUY.
+2. **Fundamentals gate** — `src/fundamentals.py` requires a verified fundamentals record
+   (revenue growth ≥ 3%, EPS growth ≥ 0, margins not contracting, no guidance cut). No
+   record, no buy. The technical screen has no forward edge (fair test: picks +3.5% vs
+   SPY +7.0%), so a technical signal alone is not enough.
+3. **Ensemble gate** — the 5-layer ensemble must have ≥ 3 live layers and must not be a
+   SELL. This is where the "multiple confirming signals" rule is actually enforced.
+4. **Theme cap** — the buy must not push the stock's theme (or ETF sleeve) past 40%.
+5. **Pending-order guard** — no duplicate buy while one is open.
+
+Sizing is conviction-tiered: 8% entry cap for a normal name, 10% (the trim cap) for a
+conviction hold, 4% for a satellite. Cash above 10% of equity is deployed within 5 days
+(`cash_drag`), so idle cash does not sit.
+
+### Index funds
+
+ETFs are first-class sleeves with their own 40% cap (`ETF_THEMES`): BROAD_MARKET, GROWTH_INDEX,
+DIVIDEND_VALUE, SECTOR, LEVERAGED. They are the cheapest drawdown control for a high-beta
+book — SCHD (+35%, vol 11%, DD -7%), XLV (+25%, vol 16%), VTV/RSP (+15-22%, vol 10-12%).
+
 ### What doesn't work (tested and refuted)
 
 - **External regime classification** — no improvement over Round-4's own ADX detection
@@ -97,7 +119,9 @@ Hermestrader/
 │   ├── market_aware_strategy.py
 │   ├── position_manager.py
 │   ├── portfolio_rules.py
-│   ├── stock_screener.py      # Parallelized technical scoring
+│   ├── fundamentals.py        # Verified-fundamentals gate (buy path)
+│   ├── fair_test.py           # Out-of-sample test harness
+│   ├── stock_screener.py      # Parallelized technical scoring (Alpaca SIP bars)
 │   ├── index_constituents.py  # S&P 500 + Nasdaq-100 loader
 │   ├── pattern_match_screen.py
 │   └── trading_strategy_engine.py
@@ -105,6 +129,9 @@ Hermestrader/
 │   ├── test_account_registry.py
 │   ├── test_cap_trim_guard.py
 │   ├── test_ensemble_fixes.py
+│   ├── test_entry_gates.py     # Ensemble gate, conviction tiers, cash drag
+│   ├── test_etf_themes.py      # Index-fund sleeves and their cap
+│   ├── test_fundamentals.py    # Fundamentals gate
 │   ├── test_ladder_state_persistence.py
 │   ├── test_multi_account_scan.py
 │   ├── test_portfolio_rules.py

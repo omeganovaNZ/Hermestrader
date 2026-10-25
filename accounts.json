@@ -8,6 +8,7 @@
       "account_number": "PA3JY31PP",
       "config_file": "alpaca_config.txt",
       "role": "Primary book. This is what src/alpaca_trader.py and every cron job read by default.",
+      "mandate": "Balanced core: diversified across stock themes plus index funds. Cash is deployed via the cash-drag rule. Holds the owner's conviction names (RKLB).",
       "notes": "Cash account, no margin (cash stays positive). 8 positions as of 2026-10-23. Recompute equity from /v2/account before quoting a figure — do not trust this note."
     },
     {
@@ -15,13 +16,15 @@
       "account_number": "PA3JNJZ0X",
       "config_file": "alpaca_config_pattern_match.txt",
       "role": "Pattern-match strategy book.",
+      "mandate": "Concentrated growth: fewer, higher-conviction positions. Restructured 2026-10-25 (VRTX/CVX trimmed to cap, GEV exited, MSFT/ZBRA/TMO/A/EXPD added).",
       "notes": "Was alpaca_config_test1.txt. Uses margin (cash negative, long MV > equity). 10 positions."
     },
     {
       "name": "Container Test 1",
       "account_number": "PA3HV7XBX",
       "config_file": "alpaca_config_container_test1.txt",
-      "role": "Second paper book, holding a different selection from the Core book. The name is historical: it was created to test a 2-container framework (C1 buy-and-hold vs C2 active, routed by an external regime classifier), which was retired 2026-10-21 after it did not work as intended. The account kept its name; the framework it was named for is gone.",
+      "role": "Satellite / experimental book. The name is historical: it was created to test a 2-container framework (C1 buy-and-hold vs C2 active, routed by an external regime classifier), which was retired 2026-10-21 after it did not work as intended. The account kept its name; the framework it was named for is gone.",
+      "mandate": "Satellite: higher-risk growth names (AI software, biotech, high-beta). AI_SOFTWARE sleeve was over the 40% cap and is being worked down.",
       "notes": "Was alpaca_config_test3.txt. Uses margin. 10 positions. This is the account referenced by data/pending_targets.json."
     }
   ]

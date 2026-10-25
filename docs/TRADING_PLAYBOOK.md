@@ -290,6 +290,42 @@ cash, then `execute_redeploy()` places the buy. Guards, all enforced and tested:
 Pinned by `test_redeploy.py` (29 tests). Runs inside `run_position_management`, after the cap
 trims, and writes `data/redeploy_log{account}.json`.
 
+### Buy gates (2026-10-25)
+
+A buy must pass all five, in this order:
+
+1. **Technical signal** — the market-aware ADX/Bollinger strategy is BUY.
+2. **Fundamentals gate** (`src/fundamentals.py`) — a verified fundamentals record is required:
+   revenue growth ≥ 3%, EPS growth ≥ 0, margins not contracting, no guidance cut. No record,
+   no buy. This exists because the technical screen has **no forward predictive power**:
+   scored as of 2026-04-25, its 102 picks returned **+3.5%** to 2026-10-25 versus **+7.0%** for
+   SPY and **+8.3%** for the average name in the same universe. The screen is a watchlist
+   generator; the fundamentals gate is what turns a candidate into a buy.
+3. **Ensemble gate** — the 5-layer ensemble must have ≥ 3 live layers and must not be a SELL.
+   This is where the standing "multiple confirming signals" rule is actually enforced (it was
+   prose until now).
+4. **Theme cap** — the buy must not push the stock's theme, or an ETF sleeve, past 40%.
+5. **Pending-order guard** — no duplicate buy while one is open.
+
+Sizing is **conviction-tiered**: 8% entry cap for a normal name, 10% (the trim cap) for a
+conviction hold, 4% for a satellite. Cash above 10% of equity is deployed within 5 days
+(`cash_drag`), because idle cash was measured to cost the cap its point.
+
+Pinned by `test_fundamentals.py`, `test_entry_gates.py`, `test_etf_themes.py`.
+
+### Index funds (2026-10-25)
+
+ETFs are first-class sleeves with their own 40% cap (`ETF_THEMES`): BROAD_MARKET, GROWTH_INDEX,
+DIVIDEND_VALUE, SECTOR, LEVERAGED. An ETF used to be UNCLASSIFIED and therefore refused by the
+theme cap — not "uncapped", but **unbuyable**. They are the cheapest drawdown control for a
+high-beta book: SCHD (+35%, vol 11%, DD -7%), XLV (+25%, vol 16%), VTV/RSP (+15-22%, vol 10-12%).
+
+### The out-of-sample fair test (standing discipline)
+
+`src/fair_test.py` scores the universe on a PAST date and measures the return FORWARD, with no
+hindsight. Every proposed rule must pass it before adoption; refutations are kept on record.
+The screener's result is the reason the fundamentals gate exists.
+
 ### Portfolio-level rules, now in code (2026-10-17)
 
 Three things that existed only as prose are now enforced or surfaced.
