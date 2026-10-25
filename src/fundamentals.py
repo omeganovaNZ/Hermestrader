@@ -58,6 +58,49 @@ FUNDAMENTALS = {
              "guidance": "raised", "source": "ASML IR Q3 2026", "as_of": "2026-10-14"},
     "BE": {"revenue_growth": 138.0, "eps_growth": 526.7, "margin_trend": "contracting",
            "guidance": "raised", "source": "Bloom Energy Q3 2026 (negative FCF)", "as_of": "2026-10-23"},
+
+    # ── 2026-10-26 additions (researched from primary sources; spot-verified) ─────────────
+    # EPS convention is mixed on purpose and stated in `note` per entry: GAAP diluted is
+    # used where it is meaningful, non-GAAP where GAAP is distorted (loss-to-profit swing
+    # or a one-time item). The gate only tests eps_growth >= 0, so read the note when
+    # comparing across names. Two entries below intentionally FAIL the gate (PTC, ILMN)
+    # - they are kept so the refusal is documented rather than silent.
+    "PLTR": {"revenue_growth": 92.8, "eps_growth": 192.9, "margin_trend": "expanding",
+             "guidance": "raised", "source": "Palantir IR Q2 2026 press release (Business Wire, 2026-08-03)",
+             "as_of": "2026-08-03",
+             "note": "GAAP diluted EPS $0.14->$0.41; diluted share count +85% Y/Y mutes it (basic +214%). Latest = Q2 2026."},
+    "DDOG": {"revenue_growth": 35.6, "eps_growth": 1100.0, "margin_trend": "expanding",
+             "guidance": "raised", "source": "Datadog Q2 2026 press release / 8-K Ex-99.1 (2026-08-06)",
+             "as_of": "2026-08-06",
+             "note": "GAAP EPS off a near-zero base ($0.01->$0.12); non-GAAP $0.57->$0.65 (+14%). Latest = Q2 2026."},
+    "PTC": {"revenue_growth": -6.8, "eps_growth": -12.0, "margin_trend": "contracting",
+            "guidance": "raised", "source": "PTC 10-Q Q3 FY2026 (SEC EDGAR accession 0001193125-26-328444)",
+            "as_of": "2026-07-29",
+            "note": "FAILS gate: revenue -6.8% (Kepware/ThingWorx divestiture), margins contracting. Kept to document the refusal."},
+    "AMGN": {"revenue_growth": 9.5, "eps_growth": 64.9, "margin_trend": "expanding",
+             "guidance": "raised", "source": "Amgen Q2 2026 8-K Ex-99.1 (2026-08-04)",
+             "as_of": "2026-08-04",
+             "note": "GAAP diluted EPS $2.65->$4.37; non-GAAP $6.02->$6.29 (+4.5%). Latest = Q2 2026."},
+    "ILMN": {"revenue_growth": 9.4, "eps_growth": -9.4, "margin_trend": "expanding",
+             "guidance": "raised", "source": "Illumina Q2 FY2026 8-K Ex-99.1 (2026-07-30)",
+             "as_of": "2026-07-30",
+             "note": "FAILS gate on GAAP diluted EPS -9.4% ($1.49->$1.35); non-GAAP +10.1%. Latest = Q2 FY2026."},
+    "P": {"revenue_growth": 37.7, "eps_growth": 50.0, "margin_trend": "expanding",
+          "guidance": "raised", "source": "Everpure (formerly Pure Storage, ticker P) Q2 FY2027 8-K Ex-99.1 (2026-08-26)",
+          "as_of": "2026-08-26",
+          "note": "GAAP diluted EPS $0.14->$0.21; non-GAAP $0.43->$0.70 (+62.8%). Ticker P = Everpure, renamed from Pure Storage."},
+    "CRWD": {"revenue_growth": 26.0, "eps_growth": 34.8, "margin_trend": "expanding",
+             "guidance": "raised", "source": "CrowdStrike Q2 FY2027 8-K Ex-99.1 (2026-08-26)",
+             "as_of": "2026-08-26",
+             "note": "non-GAAP diluted EPS $0.23->$0.31; GAAP loss $(0.07)->$0.01, so a GAAP % change is not meaningful."},
+    "MXL": {"revenue_growth": 72.0, "eps_growth": 343.0, "margin_trend": "expanding",
+            "guidance": "raised", "source": "MaxLinear Q3 2026 8-K Ex-99.1 (accession 0001288469-26-000060, 2026-10-22)",
+            "as_of": "2026-10-22",
+            "note": "non-GAAP diluted EPS $0.14->$0.62; GAAP loss $(0.52)->$0.30. Q3 2026 (ended 2026-09-30) is the latest."},
+    "LITE": {"revenue_growth": 109.3, "eps_growth": 267.0, "margin_trend": "expanding",
+             "guidance": "raised", "source": "Lumentum Q4 FY2026 IR press release / 8-K Ex-99.1 (2026-08-11)",
+             "as_of": "2026-08-11",
+             "note": "non-GAAP diluted EPS $0.88->$3.23; GAAP $(84.65) vs $2.96 due to a one-time $7.8B debt-extinguishment loss. MEDIUM confidence."},
 }
 
 # Gate thresholds. A name must clear ALL of these to be buyable.
