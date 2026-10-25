@@ -21,6 +21,32 @@ from src.index_constituents import load_constituents
 # Parallelism: max concurrent data fetches (keep under Alpaca/yfinance rate limits)
 MAX_WORKERS = 5
 
+# Data source: Alpaca SIP bars are the same consolidated feed the live system trades on,
+# so the screener and the order path cannot disagree about a price. yfinance is kept as a
+# fallback for symbols Alpaca does not cover.
+_USE_ALPACA = True
+_alpaca_trader = None
+
+
+def _get_alpaca():
+    global _alpaca_trader
+    if _alpaca_trader is None:
+        from src.alpaca_trader import AlpacaTrader
+        _alpaca_trader = AlpacaTrader()
+    return _alpaca_trader
+
+
+def fetch_bars(symbol: str, days: int = 400) -> Optional[pd.DataFrame]:
+    """Daily bars for `symbol`, from Alpaca SIP if available, else yfinance."""
+    if _USE_ALPACA:
+        try:
+            df = _get_alpaca().get_historical_data(symbol, days=days)
+            if df is not None and len(df) >= 250:
+                return df
+        except Exception:
+            pass
+    return fetch_data(symbol, "1y")
+
 
 
 
@@ -148,7 +174,7 @@ def calculate_technical_score(data: pd.DataFrame) -> Dict:
 def screen_stock(ticker: str, name: str, sector: str) -> Optional[Dict]:
     """Screen a single stock for entry quality."""
     try:
-        data = fetch_data(ticker, "1y")
+        data = fetch_bars(ticker, 400)
         if data is None or len(data) < 50:
             return None
         
