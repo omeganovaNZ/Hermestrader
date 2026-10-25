@@ -146,7 +146,7 @@ THEMES = {
         "AMP", "APO", "ARES", "AXP", "BAC", "BEN", "BLK", "BNY", "BX", "C", "CBRE",
         "CFG", "COF", "FITB", "GS", "HBAN", "IVZ", "JPM", "KEY", "KKR", "MET", "MS",
         "MTB", "NTRS", "PFG", "PNC", "PRU", "RF", "RJF", "SCHW", "STT", "SYF", "TFC",
-        "TROW", "USB", "WFC",
+        "TROW", "USB", "WFC", "BRK.B",
     },
     "INSURANCE": {
         "ACGL", "AFL", "AIG", "AIZ", "AJG", "ALL", "AON", "BRO", "CB", "CINF", "EG",
@@ -181,7 +181,7 @@ THEMES = {
     "CONSUMER_STAPLES": {
         "CHD", "CL", "CLX", "COST", "EL", "GIS", "HRL", "HSY", "KDP", "KHC", "KMB", "KO",
         "KR", "KVUE", "MDLZ", "MKC", "MNST", "MO", "PEP", "PG", "PM", "SJM", "STZ", "SYY",
-        "TSN", "WMT",
+        "TSN", "WMT", "BF.B",
     },
     "CONSUMER_DISCRETIONARY": {
         "APTV", "AZO", "BBY", "CASY", "CCL", "CMG", "DAL", "DECK", "DG", "DHI", "DLTR",
