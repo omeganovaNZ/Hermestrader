@@ -77,6 +77,62 @@ def test_records_carry_a_source_and_date():
         assert rec.get("guidance") in ("raised", "maintained", "cut"), f"{sym} bad guidance"
 
 
+# ── the one-convention rule: GAAP, with a narrow documented adjustment ───────────────────
+
+def test_eps_convention_is_declared_on_every_record():
+    """Every entry must say how its EPS was measured - an undeclared basis is a silent
+    cherry-pick, which is exactly what the convention rule exists to prevent."""
+    allowed = {"gaap", "gaap_adj", "gaap_return_to_profit"}
+    for sym, rec in f.FUNDAMENTALS.items():
+        assert rec.get("eps_basis", "gaap") in allowed, f"{sym} has an unknown eps_basis"
+
+
+def test_gaap_return_to_profit_passes_on_the_swing():
+    # CRWD and MXL went GAAP loss -> profit; no % change is meaningful, so the gate
+    # passes on the documented swing.
+    for sym in ("CRWD", "MXL"):
+        ok, why = f.fundamental_check(sym)
+        assert ok is True, f"{sym} should pass: {why}"
+
+
+def test_gaap_return_to_profit_requires_corroboration():
+    """A name cannot claim 'return to profit' without the raw GAAP figures backing it -
+    otherwise 'return to profit' would be a get-out-of-jail card."""
+    saved = dict(f.FUNDAMENTALS)
+    try:
+        f.FUNDAMENTALS["FAKE"] = {
+            "revenue_growth": 50.0, "eps_growth": None, "eps_basis": "gaap_return_to_profit",
+            "gaap_eps_prior": 0.5, "gaap_eps_current": 0.9,  # both positive: no swing
+            "margin_trend": "expanding", "guidance": "raised", "source": "test", "as_of": "2026-01-01"}
+        ok, why = f.fundamental_check("FAKE")
+        assert ok is False, f"an unverified swing must be refused: {why}"
+        assert "corroborate" in why
+        # missing figures must also refuse
+        f.FUNDAMENTALS["FAKE"]["gaap_eps_prior"] = None
+        ok2, why2 = f.fundamental_check("FAKE")
+        assert ok2 is False, why2
+    finally:
+        f.FUNDAMENTALS.clear()
+        f.FUNDAMENTALS.update(saved)
+
+
+def test_one_time_adjustment_is_auditable():
+    """LITE's raw GAAP is distorted by a one-time item, so the adjusted growth is used -
+    but the raw GAAP figures must remain on the record so the adjustment can be checked."""
+    rec = f.FUNDAMENTALS["LITE"]
+    assert rec["eps_basis"] == "gaap_adj"
+    assert rec["gaap_eps_prior"] == 2.96
+    assert rec["gaap_eps_current"] == -84.65  # raw GAAP, still negative
+    ok, why = f.fundamental_check("LITE")
+    assert ok is True, why
+
+
+def test_fundamental_score_handles_a_null_eps():
+    # CRWD has no numeric eps_growth (return-to-profit), and the score must still compute
+    s = f.fundamental_score("CRWD")
+    assert s > 0
+
+
 if __name__ == "__main__":
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for t in tests:
