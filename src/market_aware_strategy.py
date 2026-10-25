@@ -6,13 +6,11 @@ Regions: US, Korea, NZ/Australia
 Industries: Tech, Semiconductor (Memory), Semiconductor (Logic/GPU)
 """
 
-import yfinance as yf
 import pandas as pd
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from datetime import datetime
 import json
 import os
 import sys
